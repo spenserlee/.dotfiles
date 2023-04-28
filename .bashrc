@@ -8,6 +8,9 @@ case $- in
       *) return;;
 esac
 
+# dotfiles config git management
+alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
