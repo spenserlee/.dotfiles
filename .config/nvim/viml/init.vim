@@ -57,8 +57,20 @@ autocmd! BufEnter,FocusGained,InsertLeave * set relativenumber
 au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 
 " --- key mappings
+
 " disable ex mode
 noremap Q <NOP>
+
+" Move up/down lines visually when wrapped
+nnoremap <expr> k (v:count == 0 ? 'gk' : 'k')
+nnoremap <expr> j (v:count == 0 ? 'gj' : 'j')
+
+" Leader+h clears search highlighting
+map <silent> <Leader>h :noh<CR>
+
+" jump to next brace usually want the function to occupy most of screen
+nnoremap ]] ]]zt
+nnoremap [[ [[zt
 
 " TAB for quick buffer navigation
 nnoremap <TAB> :bnext<CR>
@@ -69,6 +81,11 @@ nnoremap R :tabprevious<CR>
 nnoremap T :tabnext<CR>
 nnoremap <leader>tn :tabnew<CR>
 nnoremap <leader>tc :tabclose<CR>
+
+" Let 'tl' toggle between this and the last accessed tab
+let g:lasttab = 1
+nmap <Leader>tl :exe "tabn ".g:lasttab<CR>
+au TabLeave * let g:lasttab = tabpagenr()
 
 " window navigation
 nnoremap <M-j> <C-W>j
@@ -81,3 +98,7 @@ nnoremap <C-j> :resize -2<CR>
 nnoremap <C-k> :resize +2<CR>
 nnoremap <C-h> :vertical resize -2<CR>
 nnoremap <C-l> :vertical resize +2<CR>
+
+" Count the occurrences of the previous search
+" https://vi.stackexchange.com/a/100
+nnoremap <leader>n :%s///gn<CR>

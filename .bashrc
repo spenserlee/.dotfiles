@@ -13,6 +13,12 @@ alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
 alias vim='nvim'
 
+export FZF_DEFAULT_OPTS='--height 60% --border --reverse'
+export FZF_DEFAULT_COMMAND="rg --files --hidden --smart-case -g '!{.git,.svn}'"
+export FZF_CTRL_T_COMMAND=$FZF_DEFAULT_COMMAND
+
+export RIPGREP_CONFIG_PATH=/home/slee01/.ripgreprc
+
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize

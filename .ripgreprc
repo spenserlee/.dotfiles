@@ -1,0 +1,13 @@
+--max-columns=150
+--max-columns-preview
+
+--smart-case
+
+--glob=!*.git/*
+--glob=!*.svn/*
+--glob=!tags
+--glob=!*.diff
+--glob=!*.patch
+--glob=!*.sublime-workspace
+--glob=!*.o
+--glob=!*.lock
