@@ -14,7 +14,17 @@ TLDR:
 
 TODO / NOTES:
 
+* Document all the manual installation steps
+    * global git config settings
+        * git config --global core.editor "nvim"
+        * git config --global commit.verbose true
+    * neovim from source
+    * ripgrep
+    * fzf
+    * fd <https://github.com/sharkdp/fd>
+
 * install FZF
+* install ripgrep
 * setup neovim config
     * install latest nvim 0.9, apt only offers up to 0.7
     * built from source

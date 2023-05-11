@@ -11,7 +11,13 @@ esac
 # dotfiles config git management
 alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
+alias windir="cd /mnt/c/Users/Spenser"
 alias vim='nvim'
+alias vi='nvim'
+alias v='nvim'
+
+export VISUAL=nvim
+export EDITOR="$VISUAL"
 
 export FZF_DEFAULT_OPTS='--height 60% --border --reverse'
 export FZF_DEFAULT_COMMAND="rg --files --hidden --smart-case -g '!{.git,.svn}'"

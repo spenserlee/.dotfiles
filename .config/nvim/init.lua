@@ -40,18 +40,34 @@ require("lazy").setup({
         end,
     },
     {
-        -- TODO: replace with Telescope
         -- Find stuff
-        "ibhagwan/fzf-lua",
+        "nvim-telescope/telescope.nvim",
+        tag = "0.1.1",
+        dependencies = { "nvim-lua/plenary.nvim" },
         keys = {
-            {"<C-p>", "<cmd>FzfLua files<cr>", desc = "FZF files"},
-            {"<leader>/", "<cmd>FzfLua grep<cr>", desc = "FZF grep"},
-            {"<leader>o", "<cmd>FzfLua oldfiles<cr>", desc = "FZF grep"},
-            {"gb", "<cmd>FzfLua buffers<cr>", desc = "FZF buffers"},
+            {"<C-p>", "<cmd>Telescope find_files<cr>", desc = "FZF files"},
+            {"<leader>/", "<cmd>Telescope grep_string<cr>", desc = "FZF grep"},
+            {"<leader>o", "<cmd>Telescope oldfiles<cr>", desc = "FZF grep"},
+            {"gb", "<cmd>Telescope buffers<cr>", desc = "FZF buffers"},
         },
     },
     {
+        -- TODO: find out why it breaks netrw :E with o
         "stevearc/oil.nvim",
+        dependencies = { "nvim-tree/nvim-web-devicons" },
+    },
+})
+
+-- initialize oil.nvim
+require("oil").setup({
+    columns = {
+        "icon",
+        "permissions",
+        "size",
+        "mtime",
+    },
+    view_options = {
+        show_hidden = true,
     },
 })
 
