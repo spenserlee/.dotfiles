@@ -44,30 +44,37 @@ require("lazy").setup({
         "nvim-telescope/telescope.nvim",
         tag = "0.1.1",
         dependencies = { "nvim-lua/plenary.nvim" },
-        keys = {
-            {"<C-p>", "<cmd>Telescope find_files<cr>", desc = "FZF files"},
-            {"<leader>/", "<cmd>Telescope grep_string<cr>", desc = "FZF grep"},
-            {"<leader>o", "<cmd>Telescope oldfiles<cr>", desc = "FZF grep"},
-            {"gb", "<cmd>Telescope buffers<cr>", desc = "FZF buffers"},
-        },
+        config = function()
+            local builtin = require('telescope.builtin')
+            vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = "FZF Files" })
+            vim.keymap.set('n', '<leader>fr', builtin.oldfiles, { desc = "FZF recent file" })
+            vim.keymap.set('n', 'gb', builtin.buffers, { desc = "FZF buffers" })
+            vim.keymap.set('n', '<C-p>', builtin.git_files, { desc = "FZF git file" })
+            vim.keymap.set('n', '<leader>lg', builtin.live_grep, { desc = "FZF live grep" })
+            vim.keymap.set('n', '<leader>/', builtin.grep_string, { desc = "FZF grep" })
+        end
     },
     {
-        -- TODO: find out why it breaks netrw :E with o
+        -- TODO: find out why it breaks netrw / submit issue
         "stevearc/oil.nvim",
         dependencies = { "nvim-tree/nvim-web-devicons" },
+        opts = {
+            columns = {
+                "icon",
+                "permissions",
+                "size",
+                "mtime",
+            },
+            view_options = {
+                show_hidden = true,
+            },
+        },
+        init = function()
+            -- disable netrw for now
+            vim.g.loaded_netrwPlugin = 1
+            vim.g.loaded_netrw = 1
+            vim.keymap.set('n', '<leader>o', vim.cmd.Oil, { desc = "Open Oil in a buffer" })
+            vim.keymap.set('n', '<leader>O', '<cmd>Oil --float<CR>', { desc = "Open Oil in a floating window" })
+        end
     },
 })
-
--- initialize oil.nvim
-require("oil").setup({
-    columns = {
-        "icon",
-        "permissions",
-        "size",
-        "mtime",
-    },
-    view_options = {
-        show_hidden = true,
-    },
-})
-
