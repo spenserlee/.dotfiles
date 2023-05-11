@@ -7,7 +7,7 @@ filetype plugin indent on
 let mapleader = " "
 syntax on
 
-set hidden                              " required to keep multiple buffers open
+set hidden                              " allow background buffers
 set autoread                            " update files if changed externally
 set history=10000                       " command history
 set undofile                            " save mistakes
@@ -39,7 +39,7 @@ set background=dark
 set ignorecase                          " ignore case when searching
 set smartcase                           " when searching try to be smart
 set smarttab                            " be smart about tabbing
-set nowrap                                " wrap text
+set nowrap                              " wrap text
 set expandtab                           " tabs = spaces
 set shiftwidth=4                        " 1 tab == 4 spaces as it should be
 set tabstop=4
@@ -75,6 +75,9 @@ nnoremap [[ [[zt
 " TAB for quick buffer navigation
 nnoremap <TAB> :bnext<CR>
 nnoremap <S-TAB> :bprevious<CR>
+
+" Close buffers quickly
+nnoremap <leader>d :bdelete<CR>
 
 " tab management
 nnoremap R :tabprevious<CR>
