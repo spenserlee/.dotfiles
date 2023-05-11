@@ -11,6 +11,10 @@ esac
 # dotfiles config git management
 alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
+# maintain git completion for dotfile config alias
+source /usr/share/bash-completion/completions/git
+__git_complete dotfig __git_main
+
 alias windir="cd /mnt/c/Users/Spenser"
 alias vim='nvim'
 alias vi='nvim'
