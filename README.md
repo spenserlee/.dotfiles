@@ -12,6 +12,8 @@ TLDR:
 
 New machine:
 
+    alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+    git clone --bare git@github.com:spenserlee/.dotfiles.git $HOME/.dotfiles
     mkdir -p .config-backup && \
         dotfig checkout 2>&1 | egrep "\s+\." | awk {'print $1'} | \
         xargs -I{} mv {} .config-backup/{}
