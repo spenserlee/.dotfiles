@@ -10,6 +10,14 @@ TLDR:
     alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
     dotfig config --local status.showUntrackedFiles no
 
+New machine:
+
+    mkdir -p .config-backup && \
+    dotfig checkout 2>&1 | egrep "\s+\." | awk {'print $1'} | \
+    xargs -I{} mv {} .config-backup/{}
+    dotfig checkout
+    dotfig config --local status.showUntrackedFiles no
+
 ---
 
 ## TODO / NOTES:
@@ -42,6 +50,10 @@ sudo apt update
 sudo apt install git
 git config --global core.editor "nvim"
 git config --global commit.verbose true
+```
+* tmux
+```
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 ```
 * fzf
 ```
