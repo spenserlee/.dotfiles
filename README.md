@@ -13,8 +13,8 @@ TLDR:
 New machine:
 
     mkdir -p .config-backup && \
-    dotfig checkout 2>&1 | egrep "\s+\." | awk {'print $1'} | \
-    xargs -I{} mv {} .config-backup/{}
+        dotfig checkout 2>&1 | egrep "\s+\." | awk {'print $1'} | \
+        xargs -I{} mv {} .config-backup/{}
     dotfig checkout
     dotfig config --local status.showUntrackedFiles no
 
