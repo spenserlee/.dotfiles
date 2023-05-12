@@ -76,7 +76,8 @@ nnoremap [[ [[zt
 nnoremap <TAB> :bnext<CR>
 nnoremap <S-TAB> :bprevious<CR>
 
-" Close buffers quickly
+" Close this buffer, but don't close the split or window
+" noremap <leader>d :bprevious\|bdelete #<CR>
 nnoremap <leader>d :bdelete<CR>
 
 " tab management
@@ -101,7 +102,3 @@ nnoremap <C-j> :resize -2<CR>
 nnoremap <C-k> :resize +2<CR>
 nnoremap <C-h> :vertical resize -2<CR>
 nnoremap <C-l> :vertical resize +2<CR>
-
-" Count the occurrences of the previous search
-" https://vi.stackexchange.com/a/100
-nnoremap <leader>n :%s///gn<CR>
