@@ -25,13 +25,13 @@ New machine:
 ## TODO / NOTES:
 
 * neovim plugins tbd
-    * vim-highlighter or vim-marks
     * LSP / DAP
     * treesitter
-    * leap
     * whichkey
     * quickfix
-    * statusline
+
+* fix italics not working in tmux
+    * <https://old.reddit.com/r/tmux/comments/yd62te/i_really_need_help_with_italic_and_truecolor>
 
 * fix git gutter / fugitive not working for bare repo
     * potential leads:

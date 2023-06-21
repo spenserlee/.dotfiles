@@ -38,6 +38,29 @@ require("lazy").setup({
             vim.cmd([[colorscheme gruvbox]])
         end
     },
+    -- {
+    --     https://gist.github.com/sainnhe/587a1bba123cb25a3ed83ced613c20c0
+    --     "sainnhe/gruvbox-material",
+    --     lazy = false,
+    --     priority = 1000,
+    --     config = function()
+    --         vim.cmd([[
+    --             set background=dark
+    --             let g:gruvbox_material_background = 'medium'
+    --             let g:gruvbox_material_foreground = 'mediumnal'
+    --             let g:gruvbox_material_better_performance = 1
+    --             colorscheme gruvbox-material
+    --         ]])
+    --     end
+    -- },
+    {
+        "nvim-lualine/lualine.nvim",
+        dependencies = { "nvim-tree/nvim-web-devicons" },
+        -- TODO: would be nice if the branch component also picked up on tags
+        config = function()
+            require("lualine").setup()
+        end
+    },
     {
         -- TMUX pane / VIM split
         "alexghergh/nvim-tmux-navigation",
@@ -146,9 +169,16 @@ require("lazy").setup({
         end
     },
     {
-        'windwp/nvim-autopairs',
+        "windwp/nvim-autopairs",
         event = "InsertEnter",
         opts = {} -- this is equalent to setup({}) function
     },
+    {
+        -- Navigate by eye
+        "ggandor/leap.nvim",
+        config = function()
+            require("leap").add_default_mappings()
+        end
+    }
 })
 
