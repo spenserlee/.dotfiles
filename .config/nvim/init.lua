@@ -56,15 +56,66 @@ require("lazy").setup({
         -- Find stuff
         "nvim-telescope/telescope.nvim",
         tag = "0.1.1",
-        dependencies = { "nvim-lua/plenary.nvim" },
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+            { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
+        },
         config = function()
+            local ts_actions = require("telescope.actions")
+            local ts_config  = require("telescope.config")
+            local vimgrep_args = { unpack(ts_config.values.vimgrep_arguments) }
+
+            table.insert(vimgrep_args, "--hidden")
+            table.insert(vimgrep_args, "--glob")
+            table.insert(vimgrep_args, "!**/.git/*")
+
+            -- TODO: screw telescope searching... just use fzf.vim for this
+            require("telescope").setup{
+                defaults = {
+                    mappings = {
+                        i = {
+                            ["<esc>"] = ts_actions.close
+                        },
+                    },
+                    vimgrep_arguments = vimgrep_args,
+                    fileignore_patterns = { '.git/', 'node_modules/', '.npm/',
+                        '[Cc]ache/', '-cache', '.dropbox/', '.dropbox_trashed/',
+                        '.py[co]', '.sw?', '~', '.sql', '.tags', '.gemtags',
+                        '.csv', '.tsv', '.tmp', '.old', '.plist', '.pdf', '.log',
+                        '.jpg', '.jpeg', '.png', '.tar.gz', '.tar', '.zip',
+                        '.class', '.pdb', '.dll', '.dat', '.mca', 'pycache_',
+                        '.mozilla/', '.electron/', '.vpython-root/', '.gradle/',
+                        '.nuget/', '.cargo/', '.evernote/', '.azure-functions-core-tools/',
+                        'yay/', '.local/share/Trash/', '.local/share/nvim/swap/', 'code%-other/'
+                    }
+                },
+                pickers = {
+                    find_files = {
+                        -- `hidden = true` will still show the inside of `.git/` as it's not `.gitignore`d.
+                        find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+                    },
+                },
+                extensions = {
+                    fzf = {
+                        fuzzy = true,                    -- false will only do exact matching
+                        override_generic_sorter = true,  -- override the generic sorter
+                        override_file_sorter = true,     -- override the file sorter
+                        case_mode = "smart_case",        -- or "ignore_case" or "respect_case"
+                        -- the default case_mode is "smart_case"
+                    }
+                }
+            }
+            require('telescope').load_extension('fzf')
+
+            -- TODO: is it better to use "keys" attribute and just set lazy = false?
             local builtin = require("telescope.builtin")
             vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "FZF Files" })
             vim.keymap.set("n", "<leader>fr", builtin.oldfiles, { desc = "FZF recent file" })
             vim.keymap.set("n", "gb", builtin.buffers, { desc = "FZF buffers" })
             vim.keymap.set("n", "<C-p>", builtin.git_files, { desc = "FZF git file" })
-            vim.keymap.set("n", "<leader>lg", builtin.live_grep, { desc = "FZF live grep" })
-            vim.keymap.set("n", "<leader>/", builtin.grep_string, { desc = "FZF grep" })
+            vim.keymap.set("n", "<leader>fl", builtin.current_buffer_fuzzy_find, { desc = "FZF current buffer lines" })
+            vim.keymap.set("n", "<leader>/", builtin.live_grep, { desc = "FZF live grep" })
+            vim.keymap.set("n", "<leader><S-_>", builtin.grep_string, { desc = "FZF grep string" })
         end
     },
     {
@@ -112,36 +163,19 @@ require("lazy").setup({
         --     vim.api.nvim_set_option("updatetime", 300)
         -- end,
     },
-    -- TODO: replace this with vim-highlighter?
-    -- https://github.com/azabiong/vim-highlighter
-
---    {
---        -- Multiple search highlights
---        "inkarkat/vim-mark",
---        init = function()
---            -- This plugin is great, but the default mappings are...not.
---            -- Disable them all and only setup the ones that are useful to me.
---            vim.g.mw_no_mappings = 1
---            vim.keymap.set("n", "<leader>m", "<cmd><Plug>MarkSet<CR>", { desc = "MarkSet" })
---            vim.keymap.set("n", "<leader>h", "<cmd>:noh<bar>:MarkClear<CR>", { desc = "MarkClear" })
---            vim.keymap.set("n", "<leader>h", "<cmd><Plug>IgnoreMarkSearchNext <Plug>MarkSearchNext<CR>", { desc = "MarkClear" })
---            vim.keymap.set("n", "<leader>h", "<cmd><Plug>IgnoreMarkSearchPrev <Plug>MarkSearchPrev<CR>", { desc = "MarkClear" })
---            vim.keymap.set("n", "<leader>h", "<cmd><Plug>MarkSearchAnyNext<CR>", { desc = "MarkClear" })
---            vim.keymap.set("n", "<leader>h", "<cmd><Plug>MarkSearchAnyPrev<CR>", { desc = "MarkClear" })
---
---            nmap <silent> <F2> <Plug>(lcn-rename)
---            vim.api.nvim_set_keymap('n', '<F2>', "<Plug>(lcn-rename')", { noremap = true, silent = true });
---
---            vim.cmd[[
---                let g:mw_no_mappings = 1
---                nmap <Space>m <Plug>MarkSet
---                map <silent> <Leader>h :noh<bar>:MarkClear<CR>
---                nmap <Plug>IgnoreMarkSearchNext <Plug>MarkSearchNext
---                nmap <Plug>IgnoreMarkSearchPrev <Plug>MarkSearchPrev
---                nmap <Leader>n <Plug>MarkSearchAnyNext
---                nmap <Leader>N <Plug>MarkSearchAnyPrev
---            ]]
---        end
---    },
+    {
+        -- Multiple search highlights is so great
+        -- TODO: redo keybinds
+        "azabiong/vim-highlighter",
+    },
+    {
+        "numToStr/Comment.nvim",
+        config = function()
+            require("Comment").setup()
+            local opts = { remap = true, silent = true }
+            vim.keymap.set("n", "<C-_>", "gcc", opts)
+            vim.keymap.set("v", "<C-_>", "gc", opts)
+        end
+    },
 })
 

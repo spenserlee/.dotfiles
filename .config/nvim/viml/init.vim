@@ -68,6 +68,10 @@ nnoremap <expr> j (v:count == 0 ? 'gj' : 'j')
 " Leader+h clears search highlighting
 map <silent> <Leader>h :noh<CR>
 
+" Count occurrences of previous search
+" https://vi.stackexchange.com/a/100
+nnoremap <leader>c :%s///gn<CR>
+
 " jump to next brace usually want the function to occupy most of screen
 nnoremap ]] ]]zt
 nnoremap [[ [[zt

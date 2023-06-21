@@ -25,7 +25,6 @@ New machine:
 ## TODO / NOTES:
 
 * neovim plugins tbd
-    * comments
     * surround
     * vim-highlighter or vim-marks
     * LSP / DAP
@@ -33,6 +32,8 @@ New machine:
     * leap
     * whichkey
     * zenmode
+    * quickfix
+    * statusline
 
 * fix git gutter / fugitive not working for bare repo
     * potential leads:
