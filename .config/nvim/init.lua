@@ -53,70 +53,17 @@ require("lazy").setup({
         end,
     },
     {
-        -- Find stuff
-        "nvim-telescope/telescope.nvim",
-        tag = "0.1.1",
-        dependencies = {
-            "nvim-lua/plenary.nvim",
-            { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
+        "ibhagwan/fzf-lua",
+        keys = {
+            {"<C-p>", "<cmd>FzfLua git_files<cr>", desc = "FZF git files"},
+            {"<leader>ff", "<cmd>FzfLua files<cr>", desc = "FZF files"},
+            {"<leader>fr", "<cmd>FzfLua oldfiles<cr>", desc = "FZF recent files"},
+            {"<leader>/", "<cmd>FzfLua grep<cr>", desc = "FZF grep"},
+            {"<leader>lg", "<cmd>FzfLua live_grep<cr>", desc = "FZF live grep"},
+            {"<leader>b", "<cmd>FzfLua buffers<cr>", desc = "FZF buffers"},
+            {"<leader>L", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
+            {"<leader>c", "<cmd>FzfLua commands<cr>", desc = "FZF buffers"},
         },
-        config = function()
-            local ts_actions = require("telescope.actions")
-            local ts_config  = require("telescope.config")
-            local vimgrep_args = { unpack(ts_config.values.vimgrep_arguments) }
-
-            table.insert(vimgrep_args, "--hidden")
-            table.insert(vimgrep_args, "--glob")
-            table.insert(vimgrep_args, "!**/.git/*")
-
-            -- TODO: screw telescope searching... just use fzf.vim for this
-            require("telescope").setup{
-                defaults = {
-                    mappings = {
-                        i = {
-                            ["<esc>"] = ts_actions.close
-                        },
-                    },
-                    vimgrep_arguments = vimgrep_args,
-                    fileignore_patterns = { '.git/', 'node_modules/', '.npm/',
-                        '[Cc]ache/', '-cache', '.dropbox/', '.dropbox_trashed/',
-                        '.py[co]', '.sw?', '~', '.sql', '.tags', '.gemtags',
-                        '.csv', '.tsv', '.tmp', '.old', '.plist', '.pdf', '.log',
-                        '.jpg', '.jpeg', '.png', '.tar.gz', '.tar', '.zip',
-                        '.class', '.pdb', '.dll', '.dat', '.mca', 'pycache_',
-                        '.mozilla/', '.electron/', '.vpython-root/', '.gradle/',
-                        '.nuget/', '.cargo/', '.evernote/', '.azure-functions-core-tools/',
-                        'yay/', '.local/share/Trash/', '.local/share/nvim/swap/', 'code%-other/'
-                    }
-                },
-                pickers = {
-                    find_files = {
-                        -- `hidden = true` will still show the inside of `.git/` as it's not `.gitignore`d.
-                        find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
-                    },
-                },
-                extensions = {
-                    fzf = {
-                        fuzzy = true,                    -- false will only do exact matching
-                        override_generic_sorter = true,  -- override the generic sorter
-                        override_file_sorter = true,     -- override the file sorter
-                        case_mode = "smart_case",        -- or "ignore_case" or "respect_case"
-                        -- the default case_mode is "smart_case"
-                    }
-                }
-            }
-            require('telescope').load_extension('fzf')
-
-            -- TODO: is it better to use "keys" attribute and just set lazy = false?
-            local builtin = require("telescope.builtin")
-            vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "FZF Files" })
-            vim.keymap.set("n", "<leader>fr", builtin.oldfiles, { desc = "FZF recent file" })
-            vim.keymap.set("n", "gb", builtin.buffers, { desc = "FZF buffers" })
-            vim.keymap.set("n", "<C-p>", builtin.git_files, { desc = "FZF git file" })
-            vim.keymap.set("n", "<leader>fl", builtin.current_buffer_fuzzy_find, { desc = "FZF current buffer lines" })
-            vim.keymap.set("n", "<leader>/", builtin.live_grep, { desc = "FZF live grep" })
-            vim.keymap.set("n", "<leader><S-_>", builtin.grep_string, { desc = "FZF grep string" })
-        end
     },
     {
         -- File explorer as regular buffer
@@ -176,6 +123,32 @@ require("lazy").setup({
             vim.keymap.set("n", "<C-_>", "gcc", opts)
             vim.keymap.set("v", "<C-_>", "gc", opts)
         end
+    },
+    {
+        "folke/zen-mode.nvim",
+        opts = {
+            window = {
+                width = 0.6
+            }
+        },
+        keys = {
+            {"<leader>z", "<cmd>ZenMode<cr>", desc = "ZenMode"},
+        }
+    },
+    {
+        "kylechui/nvim-surround",
+        version = "*", -- Use for stability; omit to use `main` branch for the latest features
+        event = "VeryLazy",
+        config = function()
+            require("nvim-surround").setup({
+                -- Configuration here, or leave empty to use defaults
+            })
+        end
+    },
+    {
+        'windwp/nvim-autopairs',
+        event = "InsertEnter",
+        opts = {} -- this is equalent to setup({}) function
     },
 })
 

@@ -25,13 +25,11 @@ New machine:
 ## TODO / NOTES:
 
 * neovim plugins tbd
-    * surround
     * vim-highlighter or vim-marks
     * LSP / DAP
     * treesitter
     * leap
     * whichkey
-    * zenmode
     * quickfix
     * statusline
 
