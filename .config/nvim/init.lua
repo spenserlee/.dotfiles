@@ -38,6 +38,7 @@ require("lazy").setup({
             vim.cmd([[colorscheme gruvbox]])
         end
     },
+    -- TODO: how to configure multiple colorschemes and switch between them nicely?
     -- {
     --     https://gist.github.com/sainnhe/587a1bba123cb25a3ed83ced613c20c0
     --     "sainnhe/gruvbox-material",
@@ -46,8 +47,8 @@ require("lazy").setup({
     --     config = function()
     --         vim.cmd([[
     --             set background=dark
-    --             let g:gruvbox_material_background = 'medium'
-    --             let g:gruvbox_material_foreground = 'mediumnal'
+    --             let g:gruvbox_material_background = "medium"
+    --             let g:gruvbox_material_foreground = "medium"
     --             let g:gruvbox_material_better_performance = 1
     --             colorscheme gruvbox-material
     --         ]])

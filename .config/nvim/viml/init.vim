@@ -50,8 +50,8 @@ set listchars=tab:→→,trail:⋅,nbsp:⋅     " characters to show
 
 " --- misc
 " Use relative numbers by default (normal/visual), but absolue in insert mode
-autocmd! BufLeave,FocusLost,InsertEnter   * set norelativenumber
-autocmd! BufEnter,FocusGained,InsertLeave * set relativenumber
+autocmd! BufLeave,FocusLost,InsertEnter   * setlocal norelativenumber
+autocmd! BufEnter,FocusGained,InsertLeave * setlocal relativenumber
 
 " return to last edit position when opening files
 au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
