@@ -19,7 +19,7 @@ set backspace=indent,eol,start          " backspace acts sensibly
 " --- ui
 scriptencoding utf-8                    " needed for listchars on windows
 set encoding=utf-8                      " language encoding
-set cursorline                          " highlight current line
+"set cursorline                          " highlight current line
 set title                               " show what's open
 set ruler                               " always show current position
 set showcmd                             " display command typed
@@ -57,6 +57,25 @@ autocmd! BufEnter,FocusGained,InsertLeave * set relativenumber
 au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 
 " --- key mappings
+
+" quickfix managment
+function! ToggleQuickfix()
+    if empty(filter(getwininfo(), 'v:val.quickfix'))
+        copen
+    else
+        cclose
+    endif
+endfunction
+command! ClearQuickfixList cexpr []
+
+noremap <leader>q :call ToggleQuickfix()<cr>
+noremap <leader>Q :ClearQuickfixList<cr>
+
+noremap ]q :cnext<cr>
+noremap [q :cprev<cr>
+
+noremap [Q :cfirst<cr>
+noremap ]Q :clast<cr>
 
 " disable ex mode
 noremap Q <NOP>
@@ -102,7 +121,7 @@ nnoremap <M-h> <C-W>h
 nnoremap <M-l> <C-W>l
 
 " window resizing
-nnoremap <C-j> :resize -2<CR>
-nnoremap <C-k> :resize +2<CR>
-nnoremap <C-h> :vertical resize -2<CR>
-nnoremap <C-l> :vertical resize +2<CR>
+" nnoremap <C-j> :resize -2<CR>
+" nnoremap <C-k> :resize +2<CR>
+" nnoremap <C-h> :vertical resize -2<CR>
+" nnoremap <C-l> :vertical resize +2<CR>

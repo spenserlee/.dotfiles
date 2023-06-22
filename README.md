@@ -30,6 +30,8 @@ New machine:
     * whichkey
     * quickfix
 
+* tmux session save/restore
+
 * fix italics not working in tmux
     * <https://old.reddit.com/r/tmux/comments/yd62te/i_really_need_help_with_italic_and_truecolor>
 
