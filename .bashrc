@@ -8,6 +8,10 @@ case $- in
       *) return;;
 esac
 
+# fix UTF8 characters in tmux?
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+
 # dotfiles config git management
 alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 

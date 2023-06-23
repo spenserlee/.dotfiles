@@ -34,6 +34,7 @@ set hlsearch                            " highlight search results
 set splitbelow                          " new panes appear more natural
 set splitright
 set background=dark
+set signcolumn=yes
 
 " --- text formatting
 set ignorecase                          " ignore case when searching
@@ -68,14 +69,14 @@ function! ToggleQuickfix()
 endfunction
 command! ClearQuickfixList cexpr []
 
-noremap <leader>q :call ToggleQuickfix()<cr>
-noremap <leader>Q :ClearQuickfixList<cr>
+noremap <leader>q :call ToggleQuickfix()<CR>
+noremap <silent> <leader>Q :ClearQuickfixList<CR> \| :cclose<CR>
 
-noremap ]q :cnext<cr>
-noremap [q :cprev<cr>
+noremap ]q :cnext<CR>
+noremap [q :cprev<CR>
 
-noremap [Q :cfirst<cr>
-noremap ]Q :clast<cr>
+noremap [Q :cfirst<CR>
+noremap ]Q :clast<CR>
 
 " disable ex mode
 noremap Q <NOP>
