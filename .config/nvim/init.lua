@@ -35,7 +35,15 @@ require("lazy").setup({
         lazy = false,
         priority = 1000,
         config = function()
-            vim.cmd([[colorscheme gruvbox]])
+            require("gruvbox").setup({
+                italic = {
+                    strings = false,
+                    comments = true,
+                    operators = true,
+                    folds = true,
+                }
+            })
+            vim.cmd("colorscheme gruvbox")
         end
     },
     -- TODO: how to configure multiple colorschemes and switch between them nicely?
