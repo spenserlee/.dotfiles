@@ -36,7 +36,9 @@ New machine:
     * <https://old.reddit.com/r/tmux/comments/yd62te/i_really_need_help_with_italic_and_truecolor>
 
 * fix git gutter / fugitive not working for bare repo
-    * potential leads:
+    * workaround is to invoke nvim after setting some env vars:
+        `GIT_DIR=$HOME/.dotfiles GIT_WORK_TREE=$HOME nvim`
+    * similar problem discussed here:
       * <https://github.com/tpope/vim-fugitive/issues/1981#issuecomment-1107388377>
       * <https://stackoverflow.com/a/66624354/5323947>
 
