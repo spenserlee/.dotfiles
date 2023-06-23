@@ -96,8 +96,8 @@ nnoremap ]] ]]zt
 nnoremap [[ [[zt
 
 " TAB for quick buffer navigation
-nnoremap <TAB> :bnext<CR>
-nnoremap <S-TAB> :bprevious<CR>
+" nnoremap <TAB> :bnext<CR>
+" nnoremap <S-TAB> :bprevious<CR>
 
 " Close this buffer, but don't close the split or window
 " noremap <leader>d :bprevious\|bdelete #<CR>
@@ -108,6 +108,7 @@ nnoremap R :tabprevious<CR>
 nnoremap T :tabnext<CR>
 nnoremap <leader>tn :tabnew<CR>
 nnoremap <leader>tc :tabclose<CR>
+nnoremap <leader>Z :tab split<CR>
 
 " Let 'tl' toggle between this and the last accessed tab
 let g:lasttab = 1

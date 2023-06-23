@@ -53,6 +53,11 @@ sudo apt update
 sudo apt install git
 git config --global core.editor "nvim"
 git config --global commit.verbose true
+
+# setup global pre-commit for nocheckin
+# https://gist.github.com/xezrunner/e6dbafcc21fcbc976c93bdee0f371a08
+mkdir ~/.git-core-hooks
+git config --global core.hooksPath ~/.git-core-hooks
 ```
 * tmux
 ```
@@ -85,4 +90,11 @@ make CMAKE_BUILD_TYPE=RelWithDebInfo
 cd build && cpack -G DEB && sudo dpkg -i --force-overwrite nvim-linux64.deb
 sudo apt install python3-pip
 python3 -m pip install --user --upgrade pynvim
+```
+* Dependencies for common language LSP support
+```
+sudo apt install python3-venv
+sudo apt install npm
+curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
 ```

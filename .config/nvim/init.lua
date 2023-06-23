@@ -59,7 +59,7 @@ require("lazy").setup({
         dependencies = { "nvim-tree/nvim-web-devicons" },
         -- TODO: would be nice if the branch component also picked up on tags
         config = function()
-            require("lualine").setup()
+            require("lualine").setup({})
         end
     },
     {
@@ -144,6 +144,7 @@ require("lazy").setup({
         config = function()
             require("Comment").setup()
             local opts = { remap = true, silent = true }
+            -- CTRL + / to toggle comments in normal/visual mode
             vim.keymap.set("n", "<C-_>", "gcc", opts)
             vim.keymap.set("v", "<C-_>", "gc", opts)
         end
@@ -164,9 +165,7 @@ require("lazy").setup({
         version = "*", -- Use for stability; omit to use `main` branch for the latest features
         event = "VeryLazy",
         config = function()
-            require("nvim-surround").setup({
-                -- Configuration here, or leave empty to use defaults
-            })
+            require("nvim-surround").setup()
         end
     },
     {
@@ -180,6 +179,289 @@ require("lazy").setup({
         config = function()
             require("leap").add_default_mappings()
         end
-    }
+    },
+    -- LSP / auto completion stuff
+    {
+        "hrsh7th/nvim-cmp",
+        event = { "InsertEnter", "CmdlineEnter" },
+        dependencies = {
+            "hrsh7th/cmp-buffer",           -- Buffer Completions
+            "hrsh7th/cmp-path",             -- Path Completions
+            "hrsh7th/cmp-nvim-lsp",         -- LSP Completions
+            "hrsh7th/cmp-nvim-lua",         -- Lua Completions
+            "hrsh7th/cmp-cmdline",          -- CommandLine Completions
+            "saadparwaiz1/cmp_luasnip",     -- Snippet Completions
+            "L3MON4D3/LuaSnip",             -- Snippet Engine
+            "rafamadriz/friendly-snippets", -- Bunch of Snippets
+        },
+        config = function()
+            -- TODO: what does this do?
+            -- vim.opt.completeopt = {'menu', 'menuone', 'noselect'}
+
+            local cmp = require('cmp')
+            local luasnip = require('luasnip')
+
+            local select_opts = { behavior = cmp.SelectBehavior.Select }
+
+            -- See :help cmp-config
+            cmp.setup({
+                snippet = {
+                    expand = function(args)
+                        luasnip.lsp_expand(args.body)
+                    end
+                },
+                sources = {
+                    { name = 'path' },
+                    { name = 'nvim_lsp' },
+                    { name = 'buffer', keyword_length = 3 },
+                    { name = 'luasnip', keyword_length = 2 },
+                },
+                window = {
+                    completion = cmp.config.window.bordered(),
+                    documentation = cmp.config.window.bordered(),
+                },
+                formatting = {
+                    fields = {'menu', 'abbr', 'kind'},
+                    format = function(entry, item)
+                        local menu_icon = {
+                            nvim_lsp = 'λ',
+                            luasnip = '⋗',
+                            buffer = 'Ω',
+                            path = '🖫',
+                        }
+
+                        item.menu = menu_icon[entry.source.name]
+                        return item
+                    end,
+                },
+                -- See :help cmp-mapping
+                mapping = {
+                    ['<Up>'] = cmp.mapping.select_prev_item(select_opts),
+                    ['<Down>'] = cmp.mapping.select_next_item(select_opts),
+
+                    ['<C-p>'] = cmp.mapping.select_prev_item(select_opts),
+                    ['<C-n>'] = cmp.mapping.select_next_item(select_opts),
+
+                    ['<C-u>'] = cmp.mapping.scroll_docs(-4),
+                    ['<C-d>'] = cmp.mapping.scroll_docs(4),
+
+                    ['<C-e>'] = cmp.mapping.abort(),
+                    ['<C-y>'] = cmp.mapping.confirm({select = true}),
+                    ['<CR>'] = cmp.mapping.confirm({select = false}),
+
+                    ['<C-f>'] = cmp.mapping(function(fallback)
+                        if luasnip.jumpable(1) then
+                            luasnip.jump(1)
+                        else
+                            fallback()
+                        end
+                    end, {'i', 's'}),
+
+                    ['<C-b>'] = cmp.mapping(function(fallback)
+                        if luasnip.jumpable(-1) then
+                            luasnip.jump(-1)
+                        else
+                            fallback()
+                        end
+                    end, {'i', 's'}),
+
+                    ['<Tab>'] = cmp.mapping(function(fallback)
+                        local col = vim.fn.col('.') - 1
+
+                        if cmp.visible() then
+                            cmp.select_next_item(select_opts)
+                        elseif col == 0 or vim.fn.getline('.'):sub(col, col):match('%s') then
+                            fallback()
+                        else
+                            cmp.complete()
+                        end
+                    end, {'i', 's'}),
+
+                    ['<S-Tab>'] = cmp.mapping(function(fallback)
+                        if cmp.visible() then
+                            cmp.select_prev_item(select_opts)
+                        else
+                            fallback()
+                        end
+                    end, {'i', 's'}),
+                },
+            })
+        end
+    },
+    {
+        "neovim/nvim-lspconfig",
+        event = { "BufReadPost", "BufNewFile" },
+        cmd = { "LspInfo", "LspInstall", "LspUninstall" },
+        config = function()
+            local signs = { Error = "", Warn = "", Hint = "󰌵", Info = "" }
+            for type, icon in pairs(signs) do
+                local hl = "DiagnosticSign" .. type
+                vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+            end
+            vim.diagnostic.config({
+                virtual_text = true,
+                severity_sort = true,
+                update_in_insert = true,
+                signs = { active = signs },
+                floag = {
+                    border = "rounded",
+                    source = "always",
+                }
+            })
+
+            vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
+                vim.lsp.handlers.hover,
+                { border = "rounded" }
+            )
+            vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(
+                vim.lsp.handlers.signature_help,
+                { border = "rounded" }
+            )
+        end,
+        dependencies = {
+            {
+                "folke/neodev.nvim",  -- LSP for nvim config itself
+                opts = {},
+            },
+            {
+                "williamboman/mason.nvim",
+                build = ":MasonUpdate",
+                cmd = {
+                    "Mason",
+                    "MasonInstall",
+                    "MasonUninstall",
+                    "MasonUninstallAll",
+                    "MasonLog",
+                },
+                dependencies = {'williamboman/mason-lspconfig.nvim'},
+                config = function()
+                    local mason = require("mason")
+                    local mason_lspconfig = require("mason-lspconfig")
+                    local lspconfig = require("lspconfig")
+                    local lsp_defaults = lspconfig.util.default_config
+
+                    lsp_defaults.capabilities = vim.tbl_deep_extend(
+                        'force',
+                        lsp_defaults.capabilities,
+                        require('cmp_nvim_lsp').default_capabilities()
+                    )
+
+                    require("lspconfig.ui.windows").default_options.border = "rounded"
+
+                    mason.setup({
+                        ui = {
+                            check_outdated_packages_on_open = false,
+                        }
+                    })
+                    mason_lspconfig.setup({
+                        ensure_installed = {
+                            "bashls",
+                            "clangd",
+                            "dockerls",
+                            "lua_ls",
+                            "pylsp",
+                            "rust_analyzer",
+                            "yamlls",
+                        },
+                    })
+                    local disabled_servers = {}
+
+                    mason_lspconfig.setup_handlers {
+                        function(server_name)
+                            for _, name in pairs(disabled_servers) do
+                                if name == server_name then
+                                    return
+                                end
+                            end
+                            local opts = {
+                                on_attach = lsp_on_attach,
+                                capabilities = require("cmp_nvim_lsp").capabilities,
+                            }
+                            lspconfig[server_name].setup(opts)
+                        end,
+                    }
+
+                end,
+            },
+        },
+    },
 })
 
+-- Called by each installed LSP server
+
+local function lsp_keymaps(bufnr)
+    local bufmap = function(mode, lhs, rhs)
+        local opts = { buffer = bufnr }
+        vim.keymap.set(mode, lhs, rhs, opts)
+    end
+
+    -- You can search each function in the help page.
+    -- For example :help vim.lsp.buf.hover()
+    bufmap('n', 'K', '<cmd>lua vim.lsp.buf.hover()<cr>')
+    bufmap('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<cr>')
+    bufmap('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<cr>')
+    bufmap('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<cr>')
+    bufmap('n', 'go', '<cmd>lua vim.lsp.buf.type_definition()<cr>')
+    bufmap('n', 'gr', '<cmd>lua vim.lsp.buf.references()<cr>')
+    bufmap('n', 'gs', '<cmd>lua vim.lsp.buf.signature_help()<cr>')
+    bufmap('n', '<F2>', '<cmd>lua vim.lsp.buf.rename()<cr>')
+    bufmap({'n', 'x'}, '<F3>', '<cmd>lua vim.lsp.buf.format({async = true})<cr>')
+    bufmap('n', 'gl', '<cmd>lua vim.diagnostic.open_float()<cr>')
+    bufmap('n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<cr>')
+    bufmap('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<cr>')
+
+    bufmap('n', '<F4>', '<cmd>lua vim.lsp.buf.code_action()<cr>')
+    bufmap('x', '<F4>', '<cmd>lua vim.lsp.buf.code_action()<cr>')
+end
+
+local function lsp_highlight(client, bufnr)
+    if client.supports_method "textDocument/documentHighlight" then
+        vim.api.nvim_create_augroup("lsp_document_highlight", {
+            clear = false,
+        })
+        vim.api.nvim_clear_autocmds {
+            buffer = bufnr,
+            group = "lsp_document_highlight",
+        }
+        vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+            group = "lsp_document_highlight",
+            buffer = bufnr,
+            callback = vim.lsp.buf.document_highlight,
+        })
+        vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+            group = "lsp_document_highlight",
+            buffer = bufnr,
+            callback = vim.lsp.buf.clear_references,
+        })
+    end
+end
+
+local function disable_format_on_save()
+    vim.api.nvim_del_augroup_by_name "Format on save"
+    vim.notify("Format on save is now disabled", vim.log.levels.INFO, { title = "Format" })
+end
+
+local function enable_format_on_save()
+    vim.api.nvim_create_augroup("Format on save", { clear = false })
+    vim.api.nvim_create_autocmd("BufWritePost", {
+        callback = function()
+            vim.cmd "Format"
+        end,
+        group = "Format on save",
+    })
+    vim.notify("Format on save is now enabled", vim.log.levels.INFO, { title = "Format" })
+end
+
+local function lsp_on_attach(client, bufnr)
+    lsp_keymaps(bufnr)
+    lsp_highlight(client, bufnr)
+
+    vim.api.nvim_create_user_command("FormatOnSaveToggle", function()
+        if vim.fn.exists "#Format on save#BufWritePost" == 0 then
+            enable_format_on_save()
+        else
+            disable_format_on_save()
+        end
+    end, { nargs = "*" })
+    client.server_capabilities.semanticTokensProvider = nil
+end
