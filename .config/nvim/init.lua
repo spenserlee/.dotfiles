@@ -67,7 +67,13 @@ require("lazy").setup({
         dependencies = { "nvim-tree/nvim-web-devicons" },
         -- TODO: would be nice if the branch component also picked up on tags
         config = function()
-            require("lualine").setup({})
+            require("lualine").setup({
+                sections = {
+                    lualine_x = {
+                        "%{ObsessionStatus()}", "encoding", "fileformat", "filetype"
+                    },
+                },
+            })
         end
     },
     {
@@ -76,6 +82,9 @@ require("lazy").setup({
         lazy = false,
         config = function()
             local nvim_tmux_nav = require("nvim-tmux-navigation")
+            nvim_tmux_nav.setup {
+                disable_when_zoomed = true,
+            }
             vim.keymap.set("n", "<M-h>", nvim_tmux_nav.NvimTmuxNavigateLeft)
             vim.keymap.set("n", "<M-j>", nvim_tmux_nav.NvimTmuxNavigateDown)
             vim.keymap.set("n", "<M-k>", nvim_tmux_nav.NvimTmuxNavigateUp)
@@ -84,6 +93,7 @@ require("lazy").setup({
             vim.keymap.set("n", "<M-Space>", nvim_tmux_nav.NvimTmuxNavigateNext)
         end,
     },
+    { "tpope/vim-obsession" },
     {
         "ibhagwan/fzf-lua",
         keys = {
