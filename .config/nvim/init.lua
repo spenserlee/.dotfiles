@@ -38,9 +38,9 @@ require("lazy").setup({
             require("gruvbox").setup({
                 italic = {
                     strings = false,
-                    comments = true,
-                    operators = true,
-                    folds = true,
+                    comments = false,
+                    operators = false,
+                    folds = false,
                 }
             })
             vim.cmd("colorscheme gruvbox")
@@ -60,6 +60,15 @@ require("lazy").setup({
     --             let g:gruvbox_material_better_performance = 1
     --             colorscheme gruvbox-material
     --         ]])
+    --     end
+    -- },
+    -- {
+    --     "sainnhe/everforest",
+    --     config = function()
+    --         vim.opt.termguicolors = true
+    --         vim.g.everforest_background = "hard"
+    --         vim.g.everforest_disable_italic_comment = true
+    --         vim.cmd.colorscheme("everforest")
     --     end
     -- },
     {
@@ -193,6 +202,17 @@ require("lazy").setup({
         opts = {} -- this is equalent to setup({}) function
     },
     {
+        "fedepujol/move.nvim",
+        keys = {
+            { "<C-Down>", ":MoveLine(1)<CR>", mode = { "n" } },
+            { "<C-Up>", ":MoveLine(-1)<CR>", mode = { "n" } },
+            { "<C-Down>", ":MoveBlock(1)<CR>", mode = { "v" } },
+            { "<C-Up>", ":MoveBlock(-1)<CR>", mode = { "v" } },
+            { "<C-Down>", "<C-\\><C-N>:MoveLine(1)<CR>i", mode = { "i" } },
+            { "<C-Up>", "<C-\\><C-N>:MoveLine(-1)<CR>i", mode = { "i" } },
+        }
+    },
+    {
         -- Navigate by eye
         "ggandor/leap.nvim",
         config = function()
@@ -223,6 +243,74 @@ require("lazy").setup({
     },
     {"williamboman/mason-lspconfig.nvim"},
     {"simrat39/rust-tools.nvim"},
+    {
+        "nvim-treesitter/nvim-treesitter",
+        build = ":TSUpdate",
+        event = { "BufReadPre" },
+        cmd = { "TSInstall", "TSUpdate" },
+        dependencies = {
+            "nvim-treesitter/nvim-treesitter-textobjects",
+            "RRethy/nvim-treesitter-textsubjects",
+            { "nvim-treesitter/nvim-treesitter-context", config = true },
+        },
+        config = function()
+            require("nvim-treesitter.configs").setup({
+                ensure_installed = {
+                    "c",
+                    "cpp",
+                    "lua",
+                    "vim",
+                    "vimdoc",
+                    "query",
+                    "rust",
+                    "python",
+                    "meson",
+                },
+                with_sync = true,
+                -- Install parsers synchronously (only applied to `ensure_installed`)
+                sync_install = false,
+                -- Automatically install missing parsers when entering buffer
+                -- Recommendation: set to false if you don't have `tree-sitter` CLI installed locally
+                auto_install = false,
+                highlight = {
+                    enable = true,
+                    disable = function(lang, buf)
+                        local max_filesize = 100 * 1024 -- 100 KB
+                        local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
+                        if ok and stats and stats.size > max_filesize then
+                            return true
+                        end
+                    end,
+                    -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
+                    -- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
+                    -- Using this option may slow down your editor, and you may see some duplicate highlights.
+                    -- Instead of true it can also be a list of languages
+                    additional_vim_regex_highlighting = false,
+                },
+            })
+        end,
+    },
+    {
+        "lukas-reineke/indent-blankline.nvim",
+        event = "BufReadPost",
+        config = function()
+            require("indent_blankline").setup {
+                buftype_exclude = {"terminal", "prompt", "nofile"},
+                filetype_exclude = {
+                    'help', 'dashboard', 'Trouble', 'dap.*', 'NvimTree',
+                    "packer"
+                },
+                show_current_context = true,
+                show_current_context_start = false,
+                show_trailing_blankline_indent = false,
+                -- use_treesitter = true,
+                -- use_treesitter_scope = true
+                -- context_patterns = {
+                --     'class', 'func', 'method', '.*_statement', 'table'
+                -- }
+            }
+        end,
+    },
 
     -- Autocomplete
     {"hrsh7th/nvim-cmp"},
@@ -234,6 +322,9 @@ require("lazy").setup({
     -- Snippets
     {"L3MON4D3/LuaSnip"},
     {"rafamadriz/friendly-snippets"},
+
+    -- Debugging
+    -- {"mfussenegger/nvim-dap"},
 })
 
 ---
