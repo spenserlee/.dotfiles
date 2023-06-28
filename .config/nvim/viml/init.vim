@@ -58,6 +58,7 @@ autocmd! BufEnter,FocusGained,InsertLeave * setlocal relativenumber
 au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 
 " --- key mappings
+nnoremap <CR> ciw
 
 " quickfix managment
 function! ToggleQuickfix()
