@@ -60,6 +60,8 @@ au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g
 " --- key mappings
 nnoremap <CR> ciw
 
+noremap <C-s> :write<CR>
+
 " quickfix managment
 function! ToggleQuickfix()
     if empty(filter(getwininfo(), 'v:val.quickfix'))
