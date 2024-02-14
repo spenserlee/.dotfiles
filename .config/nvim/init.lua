@@ -1,4 +1,10 @@
+-- Keep nvim/vim independent configs in vimscript for basic functionality
 vim.cmd("source ~/.config/nvim/viml/init.vim")
+
+-- @nocheckin
+-- good references
+-- https://github.com/Alexis12119/nvim-config/blob/main/lua/core/autocommands.lua
+-- https://github.com/rebelot/dotfiles/tree/master
 
 -- Install Lazy plugin manager
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -144,13 +150,56 @@ require("lazy").setup({
     {
         -- Git tools
         -- TODO: find a solution so git plugins can be utilized with bare repo
+        -- workaround by invoking nvim with explicit env var:
+        --   GIT_DIR=$HOME/.dotfiles GIT_WORK_TREE=$HOME nvim .config/nvim/init.lua
         "tpope/vim-fugitive",
     },
     {
         -- Git gutter display
         "lewis6991/gitsigns.nvim",
         config = function()
-            require("gitsigns").setup()
+            require("gitsigns").setup({
+                on_attach = function(bufnr)
+                    local gs = package.loaded.gitsigns
+
+                    local function map(mode, l, r, opts)
+                        opts = opts or {}
+                        opts.buffer = bufnr
+                        vim.keymap.set(mode, l, r, opts)
+                    end
+
+                    -- Navigation
+                    map('n', ']c', function()
+                        if vim.wo.diff then return ']c' end
+                        vim.schedule(function() gs.next_hunk() end)
+                        return '<Ignore>'
+                    end, {expr=true})
+
+                    map('n', '[c', function()
+                        if vim.wo.diff then return '[c' end
+                        vim.schedule(function() gs.prev_hunk() end)
+                        return '<Ignore>'
+                    end, {expr=true})
+
+                    -- Actions
+                    map('n', '<leader>hs', gs.stage_hunk)
+                    map('n', '<leader>hr', gs.reset_hunk)
+                    map('v', '<leader>hs', function() gs.stage_hunk {vim.fn.line('.'), vim.fn.line('v')} end)
+                    map('v', '<leader>hr', function() gs.reset_hunk {vim.fn.line('.'), vim.fn.line('v')} end)
+                    map('n', '<leader>hS', gs.stage_buffer)
+                    map('n', '<leader>hu', gs.undo_stage_hunk)
+                    map('n', '<leader>hR', gs.reset_buffer)
+                    map('n', '<leader>hp', gs.preview_hunk)
+                    map('n', '<leader>hb', function() gs.blame_line{full=true} end)
+                    map('n', '<leader>tb', gs.toggle_current_line_blame)
+                    map('n', '<leader>hd', gs.diffthis)
+                    map('n', '<leader>hD', function() gs.diffthis('~') end)
+                    map('n', '<leader>td', gs.toggle_deleted)
+
+                    -- Text object
+                    map({'o', 'x'}, 'ih', ':<C-U>Gitsigns select_hunk<CR>')
+                end
+            })
         end
     },
     {
@@ -163,9 +212,21 @@ require("lazy").setup({
         -- end,
     },
     {
-        -- Multiple search highlights is so great
-        -- TODO: redo keybinds
+        -- Multiple search highlights is so great for log analysis
         "azabiong/vim-highlighter",
+        lazy = false,
+        keys = {
+            -- highlights across window splits :Hi ==
+            -- hightlights only in current window  :Hi =
+            {"<leader>n", "<cmd>Hi}<cr>", desc = "Highlighter next recent"},
+            {"<leader>N", "<cmd>Hi{<cr>", desc = "Highlighter prev recent"},
+            {"<leader>}", "<cmd>Hi><cr>", desc = "Highlighter next any"},
+            {"<leader>{", "<cmd>Hi<<cr>", desc = "Highlighter prev any"},
+        },
+        config = function()
+            -- set global highlights by default
+            vim.cmd("Hi ==")
+        end
     },
     {
         "numToStr/Comment.nvim",
@@ -210,7 +271,10 @@ require("lazy").setup({
             { "<C-Up>", ":MoveBlock(-1)<CR>", mode = { "v" } },
             { "<C-Down>", "<C-\\><C-N>:MoveLine(1)<CR>i", mode = { "i" } },
             { "<C-Up>", "<C-\\><C-N>:MoveLine(-1)<CR>i", mode = { "i" } },
-        }
+        },
+        config = function()
+            require("move").setup({})
+        end
     },
     {
         -- Navigate by eye
@@ -224,6 +288,48 @@ require("lazy").setup({
         end
     },
     {
+        -- highlight word under cursor
+        'tzachar/local-highlight.nvim',
+        config = function()
+            require('local-highlight').setup({
+                -- disable_file_types = {'tex'},
+                hlgroup = 'Visual',
+                cw_hlgroup = nil, -- highlight under cursor
+                insert_mode = false,
+            })
+
+            vim.api.nvim_set_option("updatetime", 400)
+        end
+    },
+    -- TODO: this one messes with keymaps somehow... and annoyingly highlight
+    -- within blocks
+    -- {
+    --     "RRethy/vim-illuminate",
+    --     config = function()
+    --         require("illuminate").configure{}
+    --         -- change the highlight style
+    --         vim.api.nvim_set_hl(0, "IlluminatedWordText", { link = "Visual" })
+    --         vim.api.nvim_set_hl(0, "IlluminatedWordRead", { link = "Visual" })
+    --         vim.api.nvim_set_hl(0, "IlluminatedWordWrite", { link = "Visual" })
+    --
+    --         vim.cmd [[
+    --             hi def IlluminatedWordText guifg=none guibg=none gui=underline
+    --             hi def IlluminatedWordRead guifg=none guibg=none gui=underline
+    --             hi def IlluminatedWordWrite guifg=none guibg=none gui=underline
+    --             ]]
+    --
+    --         --- auto update the highlight style on colorscheme change
+    --         -- vim.api.nvim_create_autocmd({ "ColorScheme" }, {
+    --         --     pattern = { "*" },
+    --         --     callback = function(ev)
+    --         --         vim.api.nvim_set_hl(0, "IlluminatedWordText", { link = "Visual" })
+    --         --         vim.api.nvim_set_hl(0, "IlluminatedWordRead", { link = "Visual" })
+    --         --         vim.api.nvim_set_hl(0, "IlluminatedWordWrite", { link = "Visual" })
+    --         --     end
+    --         -- })
+    --     end
+    -- }, 
+    {
         "neovim/nvim-lspconfig",
         dependencies = {
             {
@@ -234,6 +340,7 @@ require("lazy").setup({
             },
         }
     },
+    -- TODO: get nvim-dap working with rust.. it's a huge pain..
     {
         "williamboman/mason.nvim",
         build = ":MasonUpdate",
@@ -246,7 +353,76 @@ require("lazy").setup({
         },
     },
     {"williamboman/mason-lspconfig.nvim"},
+    {
+        "rust-lang/rust.vim",
+        ft = "rust",
+        init = function()
+            vim.g.rustfmt_autosave = 1
+        end
+    },
     {"simrat39/rust-tools.nvim"},
+
+    -- rustaceanvim supposedly replaces rust-tools and claims "no setup", but I
+    -- cannot get it to work...
+    -- {
+    --     'mrcjkb/rustaceanvim',
+    --     version = '^4', -- Recommended
+    --     ft = { 'rust' },
+    --     lazy = false,
+    --     init = function()
+    --         vim.g.rustaceanvim = {
+    --             -- Plugin configuration
+    --             tools = {
+    --                 autoSetHints = true,
+    --                 inlay_hints = {
+    --                     show_parameter_hints = true,
+    --                     parameter_hints_prefix = "<- ",
+    --                     other_hints_prefix = "=> "
+    --                 }
+    --             },
+    --             -- LSP configuration
+    --             server = {
+    --                 on_attach = function(client, bufnr)
+    --                     mappings(client, bufnr)
+    --                     require("illuminate").on_attach(client)
+    --
+    --                     local bufopts = {
+    --                         noremap = true,
+    --                         silent = true,
+    --                         buffer = bufnr
+    --                     }
+    --                     -- vim.keymap.set('n', '<leader><leader>rr', "<Cmd>RustLsp runnables<CR>", bufopts)
+    --                     vim.keymap.set('n', 'K', "<Cmd>RustLsp hover actions<CR>", bufopts)
+    --                 end,
+    --                 settings = {
+    --                     -- rust-analyzer language server configuration
+    --                     ['rust-analyzer'] = {
+    --                         assist = {
+    --                             importEnforceGranularity = true,
+    --                             importPrefix = "create"
+    --                         },
+    --                         cargo = { allFeatures = true },
+    --                         checkOnSave = {
+    --                             -- default: `cargo check`
+    --                             command = "clippy",
+    --                             allFeatures = true
+    --                         },
+    --                         inlayHints = {
+    --                             lifetimeElisionHints = {
+    --                                 enable = true,
+    --                                 useParameterNames = true
+    --                             }
+    --                         }
+    --                     }
+    --                 }
+    --             },
+    --             -- DAP configuration
+    --             dap = {
+    --             },
+    --         }
+    --     end
+    -- },
+
     {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
@@ -255,7 +431,21 @@ require("lazy").setup({
         dependencies = {
             "nvim-treesitter/nvim-treesitter-textobjects",
             "RRethy/nvim-treesitter-textsubjects",
-            { "nvim-treesitter/nvim-treesitter-context", config = true },
+            {
+                "nvim-treesitter/nvim-treesitter-context",
+                config = function()
+                    require("treesitter-context").setup({
+                        -- :TSContextToggle
+                        max_lines = 0, -- How many lines the window should span. Values <= 0 mean no limit.
+                        min_window_height = 30, -- Minimum editor window height to enable context. Values <= 0 mean no limit.
+                        line_numbers = true,
+                        multiline_threshold = 10, -- Maximum number of lines to show for a single context
+                        trim_scope = 'outer', -- Which context lines to discard if `max_lines` is exceeded. Choices: 'inner', 'outer'
+                        mode = 'cursor',  -- Line used to calculate context. Choices: 'cursor', 'topline'
+                        zindex = 20, -- The Z-index of the context window
+                    })
+                end
+            },
         },
         config = function()
             require("nvim-treesitter.configs").setup({
@@ -296,25 +486,42 @@ require("lazy").setup({
     },
     {
         "lukas-reineke/indent-blankline.nvim",
+        main= "ibl",
         event = "BufReadPost",
-        config = function()
-            require("indent_blankline").setup {
-                buftype_exclude = {"terminal", "prompt", "nofile"},
-                filetype_exclude = {
-                    'help', 'dashboard', 'Trouble', 'dap.*', 'NvimTree',
-                    "packer"
-                },
-                show_current_context = true,
-                show_current_context_start = false,
-                show_trailing_blankline_indent = false,
-                -- use_treesitter = true,
-                -- use_treesitter_scope = true
-                -- context_patterns = {
-                --     'class', 'func', 'method', '.*_statement', 'table'
-                -- }
-            }
-        end,
+        opts = {
+            -- NOTE: "scope" here refers to variable accessibitily, NOT the
+            -- current cursor indentation level
+            -- scope = { enabled = true },
+            -- TODO: await "current_indent" PR, which is what I liked from v2
+            -- https://github.com/lukas-reineke/indent-blankline.nvim/pull/743
+            exclude = {
+                filetypes = { "help", "alpha", "dashboard", "Trouble",
+                              "lazy", "neo-tree", "dap.*", "NvimTree" },
+                buftypes = { "terminal", "prompt", "nofile" },
+            },
+        },
     },
+    -- {
+    --     "lukas-reineke/indent-blankline.nvim",
+    --     event = "BufReadPost",
+    --     config = function()
+    --         require("indent_blankline").setup {
+    --             buftype_exclude = {"terminal", "prompt", "nofile"},
+    --             filetype_exclude = {
+    --                 'help', 'dashboard', 'Trouble', 'dap.*', 'NvimTree',
+    --                 "packer"
+    --             },
+    --             show_current_context = true,
+    --             show_current_context_start = false,
+    --             show_trailing_blankline_indent = false,
+    --             -- use_treesitter = true,
+    --             -- use_treesitter_scope = true
+    --             -- context_patterns = {
+    --             --     'class', 'func', 'method', '.*_statement', 'table'
+    --             -- }
+    --         }
+    --     end,
+    -- },
 
     -- Autocomplete
     {"hrsh7th/nvim-cmp"},
@@ -354,6 +561,8 @@ local has_words_before = function()
 end
 
 
+-- TODO: add completions from other visible buffers
+-- https://github.com/hrsh7th/cmp-buffer#visible-buffers
 -- See :help cmp-config
 cmp.setup({
     snippet = {
@@ -440,11 +649,13 @@ require("mason-lspconfig").setup({
     ensure_installed = {
         "bashls",
         "clangd",
+        -- "codelldb",
         "dockerls",
         "lua_ls",
         "pylsp",
         "rust_analyzer",
         "yamlls",
+        -- "taplo",
     }
 })
 
@@ -464,6 +675,18 @@ lsp_defaults.capabilities = vim.tbl_deep_extend(
 ---
 -- Diagnostic customization
 ---
+vim.g.diagnostics_active = true
+function _G.toggle_diagnostics()
+    if vim.g.diagnostics_active then
+        vim.diagnostic.disable()
+        vim.g.diagnostics_active = false
+    else
+        vim.diagnostic.enable()
+        vim.g.diagnostics_active = true
+    end
+end
+vim.api.nvim_set_keymap('n', '<leader>tt', ':call v:lua.toggle_diagnostics()<CR>', { noremap = true, silent = false })
+
 local sign = function(opts)
     -- See :help sign_define()
     vim.fn.sign_define(opts.name, {
@@ -546,7 +769,13 @@ require("mason-lspconfig").setup_handlers({
         lspconfig[server].setup({})
     end,
     ["rust_analyzer"] = function ()
-        require("rust-tools").setup({})
+        require("rust-tools").setup({
+            tools = {
+                hover_actions = {
+                    auto_focus = true,
+                },
+            },
+        })
     end,
     ["lua_ls"] = function ()
         lspconfig.lua_ls.setup {

@@ -60,6 +60,8 @@ au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g
 " --- key mappings
 nnoremap <CR> ciw
 
+noremap <C-s> :write<CR>
+
 " quickfix managment
 function! ToggleQuickfix()
     if empty(filter(getwininfo(), 'v:val.quickfix'))
@@ -87,7 +89,7 @@ nnoremap <expr> k (v:count == 0 ? 'gk' : 'k')
 nnoremap <expr> j (v:count == 0 ? 'gj' : 'j')
 
 " Leader+h clears search highlighting
-map <silent> <Leader>h :noh<CR>
+map <silent> <Leader>h :noh<CR>:Hi clear<CR>
 
 " Count occurrences of previous search
 " https://vi.stackexchange.com/a/100
