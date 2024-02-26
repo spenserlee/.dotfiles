@@ -155,6 +155,14 @@ require("lazy").setup({
         "tpope/vim-fugitive",
     },
     {
+        'b0o/incline.nvim',
+        config = function()
+            require('incline').setup()
+        end,
+        -- Optional: Lazy load Incline
+        event = 'VeryLazy',
+    },
+    {
         -- Git gutter display
         "lewis6991/gitsigns.nvim",
         config = function()
@@ -246,7 +254,7 @@ require("lazy").setup({
             }
         },
         keys = {
-            {"<leader>z", "<cmd>ZenMode<cr>", desc = "ZenMode"},
+            {"<leader>z", "<cmd>lua require('incline').toggle()<cr><cmd>ZenMode<cr>", desc = "ZenMode"},
         }
     },
     {

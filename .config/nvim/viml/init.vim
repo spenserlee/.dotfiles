@@ -35,6 +35,7 @@ set splitbelow                          " new panes appear more natural
 set splitright
 set background=dark
 set signcolumn=yes
+set laststatus=3                        " statusline for only active window
 
 " --- text formatting
 set ignorecase                          " ignore case when searching
