@@ -82,6 +82,10 @@ noremap [q :cprev<CR>
 noremap [Q :cfirst<CR>
 noremap ]Q :clast<CR>
 
+" location list movement
+noremap ]w :lnext<CR>
+noremap [w :lprev<CR>
+
 " disable ex mode
 noremap Q <NOP>
 

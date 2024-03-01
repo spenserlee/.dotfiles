@@ -155,12 +155,6 @@ require("lazy").setup({
         "tpope/vim-fugitive",
     },
     {
-        'b0o/incline.nvim',
-        config = function()
-            require('incline').setup()
-        end,
-        -- Optional: Lazy load Incline
-        event = 'VeryLazy',
     },
     {
         -- Git gutter display
@@ -247,14 +241,55 @@ require("lazy").setup({
         end
     },
     {
+        -- displays filename on each split in floating in top right
+        'b0o/incline.nvim',
+        config = function()
+            require('incline').setup({
+                window = {
+                    zindex = 39
+                }
+            })
+        end,
+        -- Optional: Lazy load Incline
+        event = 'VeryLazy',
+    },
+    {
         "folke/zen-mode.nvim",
         opts = {
+            zindex = 50,
             window = {
                 width = 0.6
-            }
+            },
+            plugins = {
+                -- disable some global vim options (vim.o...)
+                -- comment the lines to not apply the options
+                options = {
+                    enabled = true,
+                    ruler = false, -- disables the ruler text in the cmd line area
+                    showcmd = false, -- disables the command in the last line of the screen
+                    -- you may turn on/off statusline in zen mode by setting 'laststatus'
+                    -- statusline will be shown only if 'laststatus' == 3
+                    laststatus = 0, -- turn off the statusline in zen mode
+                },
+                gitsigns = { enabled = false }, -- disables git signs
+                tmux = { enabled = false }, -- disables the tmux statusline
+            },
+            on_open = function(_)
+                require('incline').disable()
+                vim.fn.system([[tmux set status off]])
+                vim.fn.system(
+                [[tmux list-panes -F '\#F' | grep -q Z || tmux resize-pane -Z]])
+            end,
+            on_close = function(_)
+                require('incline').enable()
+                vim.fn.system([[tmux set status on]])
+                -- vim.fn.system(
+                -- [[tmux list-panes -F '\#F' | grep -q Z && tmux resize-pane -Z]])
+            end
         },
         keys = {
-            {"<leader>z", "<cmd>lua require('incline').toggle()<cr><cmd>ZenMode<cr>", desc = "ZenMode"},
+            {"<leader>z", "<cmd>ZenMode<cr>", desc = "ZenMode"},
+            -- {"<leader>z", "<cmd>lua require('incline').toggle()<cr><cmd>ZenMode<cr>", desc = "ZenMode"},
         }
     },
     {
@@ -444,7 +479,7 @@ require("lazy").setup({
                 config = function()
                     require("treesitter-context").setup({
                         -- :TSContextToggle
-                        max_lines = 0, -- How many lines the window should span. Values <= 0 mean no limit.
+                        max_lines = 10, -- How many lines the window should span. Values <= 0 mean no limit.
                         min_window_height = 30, -- Minimum editor window height to enable context. Values <= 0 mean no limit.
                         line_numbers = true,
                         multiline_threshold = 10, -- Maximum number of lines to show for a single context
