@@ -41,14 +41,14 @@ require("lazy").setup({
         lazy = false,
         priority = 1000,
         config = function()
-            require("gruvbox").setup({
-                italic = {
-                    strings = false,
-                    comments = false,
-                    operators = false,
-                    folds = false,
-                }
-            })
+            -- require("gruvbox").setup({
+            --     italic = {
+            --         strings = false,
+            --         comments = false,
+            --         operators = false,
+            --         folds = false,
+            --     }
+            -- })
             vim.cmd("colorscheme gruvbox")
         end
     },
@@ -84,6 +84,27 @@ require("lazy").setup({
         config = function()
             require("lualine").setup({
                 sections = {
+                    lualine_c = {
+                        {
+                            'filename',
+                            file_status = true,      -- Displays file status (readonly status, modified status)
+                            newfile_status = false,  -- Display new file status (new file means no write after created)
+                            path = 1,                -- 0: Just the filename
+                            -- 1: Relative path
+                            -- 2: Absolute path
+                            -- 3: Absolute path, with tilde as the home directory
+                            -- 4: Filename and parent dir, with tilde as the home directory
+
+                            shorting_target = 40,    -- Shortens path to leave 40 spaces in the window
+                            -- for other components. (terrible name, any suggestions?)
+                            symbols = {
+                                modified = '[+]',      -- Text to show when the file is modified.
+                                readonly = '[-]',      -- Text to show when the file is non-modifiable or readonly.
+                                unnamed = '[No Name]', -- Text to show for unnamed buffers.
+                                newfile = '[New]',     -- Text to show for newly created file before first write
+                            }
+                        }
+                    },
                     lualine_x = {
                         "%{ObsessionStatus()}", "encoding", "fileformat", "filetype"
                     },
@@ -257,7 +278,7 @@ require("lazy").setup({
     {
         "folke/zen-mode.nvim",
         opts = {
-            zindex = 50,
+            zindex = 42,
             window = {
                 width = 0.6
             },
@@ -401,7 +422,7 @@ require("lazy").setup({
         "rust-lang/rust.vim",
         ft = "rust",
         init = function()
-            vim.g.rustfmt_autosave = 1
+            -- vim.g.rustfmt_autosave = 1
         end
     },
     {"simrat39/rust-tools.nvim"},
@@ -501,6 +522,8 @@ require("lazy").setup({
                     "vimdoc",
                     "query",
                     "rust",
+                    "markdown",
+                    "markdown_inline",
                     "python",
                     "meson",
                 },
@@ -580,6 +603,191 @@ require("lazy").setup({
 
     -- Debugging
     -- {"mfussenegger/nvim-dap"},
+
+
+    -- LLM coding
+    {
+        'spenserlee/dingllm.nvim',
+        dependencies = { 'nvim-lua/plenary.nvim' },
+        config = function()
+
+            -- local system_prompt = [[
+            -- You are an AI programming assistant integrated into a code editor. Your purpose is to help the user with programming tasks as they write code.
+            -- Key capabilities:
+            -- - Thoroughly analyze the user's code and provide insightful suggestions for improvements related to best practices, performance, readability, and maintainability. Explain your reasoning.
+            -- - Answer coding questions in detail, using examples from the user's own code when relevant. Break down complex topics step- Spot potential bugs and logical errors. Alert the user and suggest fixes.
+            -- - Upon request, add helpful comments explaining complex or unclear code.
+            -- - Suggest relevant documentation, StackOverflow answers, and other resources related to the user's code and questions.
+            -- - Engage in back-and-forth conversations to understand the user's intent and provide the most helpful information.
+            -- - Keep concise and use markdown.
+            -- - When asked to create code, only generate the code. No bugs.
+            -- - Think step by step
+            -- ]]
+
+            -- local system_prompt_replace = "Follow the instructions in the code comments. Generate code only. Think step by step. If you must speak, do so in comments. Generate valid code only."
+            --
+            local system_prompt = [[
+            You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code.  Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone.
+            Instructions for the output format:
+            - Output code without descriptions, unless it is important.
+            - Minimize prose, comments and empty lines.
+            - Do not provide any backticks that surround the code.
+            - Never ever output backticks like this ```.
+            - Make it easy to copy and paste.
+            - Consider other possibilities to achieve the result, do not be limited by the prompt.
+            ]]
+
+            -- local system_prompt =
+            -- 'You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks'
+            local helpful_prompt = 'You are a helpful assistant. What I have sent are my notes so far.'
+            local dingllm = require 'dingllm'
+
+
+            -- https://ai.google.dev/gemini-api/docs/models/gemini
+            local function gemeni_replace()
+                dingllm.invoke_llm_and_stream_into_editor({
+                    url = 'https://generativelanguage.googleapis.com/v1/models',
+                    model = 'gemini-1.5-flash',
+                    api_key_name = 'GEMINI_API_KEY_159',
+                    system_prompt = system_prompt,
+                    replace = true,
+                }, dingllm.make_gemini_spec_curl_args, dingllm.handle_gemini_spec_data)
+            end
+
+            local function gemeni_help()
+                dingllm.invoke_llm_and_stream_into_editor({
+                    url = 'https://generativelanguage.googleapis.com/v1/models',
+                    model = 'gemini-1.5-flash',
+                    api_key_name = 'GEMINI_API_KEY_159',
+                    system_prompt = helpful_prompt,
+                    replace = false,
+                }, dingllm.make_gemini_spec_curl_args, dingllm.handle_gemini_spec_data)
+            end
+
+            -- https://console.groq.com/docs/models
+            local function groq_replace()
+                dingllm.invoke_llm_and_stream_into_editor({
+                    url = 'https://api.groq.com/openai/v1/chat/completions',
+                    -- model = 'llama-3.1-70b-versatile',
+                    -- model = 'llama-3.1-8b-instant'
+                    model = 'llama3-70b-8192',
+                    api_key_name = 'GROQ_API_KEY',
+                    system_prompt = system_prompt,
+                    replace = true,
+                }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
+                -- }, dingllm.make_openai_spec_curl_args, dingllm.handle_groq_spec_data)
+            end
+
+            local function groq_help()
+                dingllm.invoke_llm_and_stream_into_editor({
+                    url = 'https://api.groq.com/openai/v1/chat/completions',
+                    -- model = 'llama-3.1-70b-versatile',
+                    -- model = 'llama-3.1-8b-instant'
+                    model = 'llama3-70b-8192',
+                    api_key_name = 'GROQ_API_KEY',
+                    system_prompt = helpful_prompt,
+                    replace = false,
+                }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
+                -- }, dingllm.make_openai_spec_curl_args, dingllm.handle_groq_spec_data)
+            end
+
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>g', groq_replace, { desc = 'llm groq' })
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>G', groq_help, { desc = 'llm groq_help' })
+            vim.keymap.set({ 'n', 'v' }, '<leader>k', gemeni_replace, { desc = 'llm gemeni' })
+            vim.keymap.set({ 'n', 'v' }, '<leader>K', gemeni_help, { desc = 'llm gemeni_help' })
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>o', llama_405b_base, { desc = 'llama base' })
+
+            -- local function handle_open_router_spec_data(data_stream)
+            --     local success, json = pcall(vim.json.decode, data_stream)
+            --     if success then
+            --         if json.choices and json.choices[1] and json.choices[1].text then
+            --             local content = json.choices[1].text
+            --             if content then
+            --                 dingllm.write_string_at_cursor(content)
+            --             end
+            --         end
+            --     else
+            --         print("non json " .. data_stream)
+            --     end
+            -- end
+            --
+            -- local function custom_make_openai_spec_curl_args(opts, prompt)
+            --     local url = opts.url
+            --     local api_key = opts.api_key_name and os.getenv(opts.api_key_name)
+            --     local data = {
+            --         prompt = prompt,
+            --         model = opts.model,
+            --         temperature = 0.7,
+            --         stream = true,
+            --     }
+            --     local args = { '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
+            --     if api_key then
+            --         table.insert(args, '-H')
+            --         table.insert(args, 'Authorization: Bearer ' .. api_key)
+            --     end
+            --     table.insert(args, url)
+            --     return args
+            -- end
+            --
+            -- local function llama_405b_base()
+            --     dingllm.invoke_llm_and_stream_into_editor({
+            --         url = 'https://openrouter.ai/api/v1/chat/completions',
+            --         model = 'meta-llama/llama-3.1-405b',
+            --         api_key_name = 'OPEN_ROUTER_API_KEY',
+            --         max_tokens = '128',
+            --         replace = false,
+            --     }, custom_make_openai_spec_curl_args, handle_open_router_spec_data)
+            -- end
+            --
+            -- local function llama405b_replace()
+            --     dingllm.invoke_llm_and_stream_into_editor({
+            --         url = 'https://api.lambdalabs.com/v1/chat/completions',
+            --         model = 'hermes-3-llama-3.1-405b-fp8',
+            --         api_key_name = 'LAMBDA_API_KEY',
+            --         system_prompt = system_prompt,
+            --         replace = true,
+            --     }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
+            -- end
+            --
+            -- local function llama405b_help()
+            --     dingllm.invoke_llm_and_stream_into_editor({
+            --         url = 'https://api.lambdalabs.com/v1/chat/completions',
+            --         model = 'hermes-3-llama-3.1-405b-fp8',
+            --         api_key_name = 'LAMBDA_API_KEY',
+            --         system_prompt = helpful_prompt,
+            --         replace = false,
+            --     }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
+            -- end
+            --
+            -- local function anthropic_help()
+            --     dingllm.invoke_llm_and_stream_into_editor({
+            --         url = 'https://api.anthropic.com/v1/messages',
+            --         model = 'claude-3-5-sonnet-20240620',
+            --         api_key_name = 'ANTHROPIC_API_KEY',
+            --         system_prompt = helpful_prompt,
+            --         replace = false,
+            --     }, dingllm.make_anthropic_spec_curl_args, dingllm.handle_anthropic_spec_data)
+            -- end
+            --
+            -- local function anthropic_replace()
+            --     dingllm.invoke_llm_and_stream_into_editor({
+            --         url = 'https://api.anthropic.com/v1/messages',
+            --         model = 'claude-3-5-sonnet-20240620',
+            --         api_key_name = 'ANTHROPIC_API_KEY',
+            --         system_prompt = system_prompt,
+            --         replace = true,
+            --     }, dingllm.make_anthropic_spec_curl_args, dingllm.handle_anthropic_spec_data)
+            -- end
+
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>k', groq_replace, { desc = 'llm groq' })
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>K', groq_help, { desc = 'llm groq_help' })
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>L', llama405b_help, { desc = 'llm llama405b_help' })
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>l', llama405b_replace, { desc = 'llm llama405b_replace' })
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>I', anthropic_help, { desc = 'llm anthropic_help' })
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>i', anthropic_replace, { desc = 'llm anthropic' })
+            -- vim.keymap.set({ 'n', 'v' }, '<leader>o', llama_405b_base, { desc = 'llama base' })
+        end,
+    },
 })
 
 ---
