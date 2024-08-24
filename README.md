@@ -19,6 +19,7 @@ New machine:
         xargs -I{} mv {} .config-backup/{}
     dotfig checkout
     dotfig config --local status.showUntrackedFiles no
+    dotfig fetch origin '*:*' # fetch remote branches
 
 ---
 
