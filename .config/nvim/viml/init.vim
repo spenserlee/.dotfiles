@@ -35,6 +35,7 @@ set splitbelow                          " new panes appear more natural
 set splitright
 set background=dark
 set signcolumn=yes
+set laststatus=3                        " statusline for only active window
 
 " --- text formatting
 set ignorecase                          " ignore case when searching
@@ -81,6 +82,10 @@ noremap [q :cprev<CR>
 noremap [Q :cfirst<CR>
 noremap ]Q :clast<CR>
 
+" location list movement
+noremap ]w :lnext<CR>
+noremap [w :lprev<CR>
+
 " disable ex mode
 noremap Q <NOP>
 
@@ -89,7 +94,7 @@ nnoremap <expr> k (v:count == 0 ? 'gk' : 'k')
 nnoremap <expr> j (v:count == 0 ? 'gj' : 'j')
 
 " Leader+h clears search highlighting
-map <silent> <Leader>h :noh<CR>
+map <silent> <Leader>h :noh<CR>:Hi clear<CR>
 
 " Count occurrences of previous search
 " https://vi.stackexchange.com/a/100

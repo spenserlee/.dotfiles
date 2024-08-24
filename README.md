@@ -55,6 +55,7 @@ sudo apt update
 sudo apt install git
 git config --global core.editor "nvim"
 git config --global commit.verbose true
+git config --global alias.hs "log --pretty='%C(Yellow)%h  %C(reset)%ad (%C(Green)%cr%C(reset))%x09 %C(Blue)%an: %C(reset)%s' --date=short"
 
 # setup global pre-commit for nocheckin
 # https://gist.github.com/xezrunner/e6dbafcc21fcbc976c93bdee0f371a08

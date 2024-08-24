@@ -11,3 +11,4 @@
 --glob=!*.sublime-workspace
 --glob=!*.o
 --glob=!*.lock
+--glob=!Session.vim
