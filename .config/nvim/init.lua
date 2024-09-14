@@ -137,10 +137,10 @@ require("lazy").setup({
             {"<leader>ff", "<cmd>FzfLua files<cr>", desc = "FZF files"},
             {"<leader>fr", "<cmd>FzfLua oldfiles<cr>", desc = "FZF recent files"},
             {"<leader>/", "<cmd>FzfLua grep_cword<cr>", desc = "FZF word under cursor"},
-            {"<leader>l", "<cmd>FzfLua resume<cr>", desc = "FZF resume last search"},
+            {"<leader>L", "<cmd>FzfLua resume<cr>", desc = "FZF resume last search"},
             {"<leader>?", "<cmd>FzfLua grep<cr>", desc = "FZF search"},
             {"<leader><space>", "<cmd>FzfLua buffers<cr>", desc = "FZF buffers"},
-            {"<leader>b", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
+            -- {"<leader>b", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
             {"<leader>c", "<cmd>FzfLua commands<cr>", desc = "FZF commands"},
             {"<leader>s", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "LSP Document Symbols"},
         },
@@ -403,7 +403,10 @@ require("lazy").setup({
                     require("neodev").setup()
                 end
             },
-        }
+        },
+        inlay_hints = {
+            enable = true,
+        },
     },
     -- TODO: get nvim-dap working with rust.. it's a huge pain..
     {
@@ -416,8 +419,92 @@ require("lazy").setup({
             "MasonUninstallAll",
             "MasonLog",
         },
+        dependencies = {
+            "williamboman/mason-lspconfig.nvim",
+            "WhoIsSethDaniel/mason-tool-installer.nvim",
+            "mfussenegger/nvim-dap",
+            "jay-babu/mason-nvim-dap.nvim",
+        },
+        config = function()
+            -- import mason
+            local mason = require("mason")
+
+            -- import mason-lspconfig
+            local mason_lspconfig = require("mason-lspconfig")
+            local mason_tool_installer = require("mason-tool-installer")
+            local mason_dap = require("mason-nvim-dap")
+
+            -- enable mason and configure icons
+            mason.setup({
+                ui = {
+                    border = "rounded",
+                    icons = {
+                        package_installed = "✓",
+                        package_pending = "➜",
+                        package_uninstalled = "✗",
+                    },
+                },
+            })
+
+            mason_lspconfig.setup({
+                ensure_installed = {
+                    "bashls",
+                    "clangd",
+                    "dockerls",
+                    "lua_ls",
+                    "pylsp",
+                    "rust_analyzer",
+                    "yamlls",
+                },
+                -- auto-install configured servers (with lspconfig)
+                automatic_installation = true, -- not the same as ensure_installed
+            })
+
+            mason_tool_installer.setup({
+                ensure_installed = {
+
+                    -- Formatter and Linters
+                    "cmakelang", -- CMake
+                    "markdownlint", --Markdown
+
+                    -- Linters
+                    -- "pylint", -- Python
+                    -- "eslint_d", -- Javascript and more
+                    -- "cmakelint", -- CMake
+                    -- "luacheck", -- Lua
+                    -- "jsonlint", -- Json
+                    -- "golangci-lint", -- Golang
+                    -- "checkstyle", -- Overall
+                    -- "yamllint", -- Yaml
+                    -- "stylelint", -- CSS/SCSS etc
+
+                    -- Formatters
+                    -- "stylua", -- lua
+                    -- "prettier",
+                    -- "isort", -- python
+                    -- "black", -- python
+                    -- "htmlbeautifier", -- HTML
+                    -- "beautysh", --Shell
+                    -- "latexindent", --Latex
+                    -- "csharpier", --C#
+                    -- "clang-format", --C/C++
+                    -- "pretty-php", --PHP
+
+                    -- Debugger adapters
+                    "bash-debug-adapter", -- Shell
+                    "codelldb", -- C/C++/Rust
+                    -- "debugpy", -- Python
+                    -- "java-debug-adapter", -- Java
+                    -- "js-debug-adapter", -- Javascript
+                    -- "kotlin-debug-adapter", -- Kotlin
+                    -- "netcoredbg", -- C#
+                    -- "php-debug-adapter", -- PHP
+                },
+            })
+
+            local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
+        end,
     },
-    {"williamboman/mason-lspconfig.nvim"},
     {
         "rust-lang/rust.vim",
         ft = "rust",
@@ -425,7 +512,28 @@ require("lazy").setup({
             -- vim.g.rustfmt_autosave = 1
         end
     },
-    {"simrat39/rust-tools.nvim"},
+    -- {"simrat39/rust-tools.nvim"},
+    {
+        "Ciel-MC/rust-tools.nvim",
+        ft = "rust",
+    },
+    {
+        -- nice plugin which solves the terrible native lsp inlay hint behaviour.
+        "chrisgrieser/nvim-lsp-endhints",
+        event = "LspAttach",
+        opts = {}, -- required, even if empty
+        init = function()
+            require("lsp-endhints").setup({
+                icons = {
+                    type = "=> ",
+                    parameter = "<- ",
+                },
+            })
+        end
+        -- useful command to toggle inlay hint native display
+        -- require("lsp-endhints").toggle()
+    },
+
 
     -- rustaceanvim supposedly replaces rust-tools and claims "no setup", but I
     -- cannot get it to work...
@@ -602,7 +710,109 @@ require("lazy").setup({
     {"rafamadriz/friendly-snippets"},
 
     -- Debugging
-    -- {"mfussenegger/nvim-dap"},
+    {
+        "mfussenegger/nvim-dap",
+        dependencies = {
+            "rcarriga/nvim-dap-ui",
+            "theHamsta/nvim-dap-virtual-text",
+            "nvim-neotest/nvim-nio",
+            "williamboman/mason.nvim",
+        },
+        config = function()
+            local dap = require "dap"
+            local ui = require "dapui"
+
+            require("dapui").setup()
+            require("nvim-dap-virtual-text").setup({})
+
+            vim.keymap.set("n", "<space>b", dap.toggle_breakpoint)
+            vim.keymap.set("n", "<space>gb", dap.run_to_cursor)
+
+            -- Eval var under cursor
+            vim.keymap.set("n", "<space>;", function()
+                require("dapui").eval(nil, { enter = true })
+            end)
+
+            vim.keymap.set("n", "<F1>", dap.continue)
+            vim.keymap.set("n", "<F2>", dap.step_into)
+            vim.keymap.set("n", "<F3>", dap.step_over)
+            vim.keymap.set("n", "<F4>", dap.step_out)
+            vim.keymap.set("n", "<F5>", dap.step_back) -- only for rr?
+            vim.keymap.set("n", "<F10>", dap.restart)
+
+            dap.listeners.before.attach.dapui_config = function() ui.open() end
+            dap.listeners.before.launch.dapui_config = function() ui.open() end
+            dap.listeners.before.event_terminated.dapui_config = function() ui.close() end
+            dap.listeners.before.event_exited.dapui_config = function() ui.close() end
+
+            -- local bin_locations = vim.fn.stdpath("data") .. "/mason/bin/"
+            --
+            -- local mason_registry = require("mason-registry")
+            -- local bin_locations = mason_registry.get_installed_packages
+            local home_path = os.getenv("HOME") .. "/"
+            local bin_locations = home_path .. ".local/share/nvim/mason/bin"
+
+            dap.adapters.codelldb = {
+                type = "server",
+                port = "${port}",
+                host = "127.0.0.1",
+                executable = {
+                    command = bin_locations .. "codelldb",
+                    args = { "--port", "${port}" },
+                },
+            }
+
+            dap.configurations.cpp = {
+                {
+                    name = "Launch",
+                    type = "codelldb",
+                    request = "launch",
+                    program = function()
+                        return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug/", "file")
+                    end,
+                    cwd = "${workspaceFolder}",
+                    stopOnEntry = false,
+                    runInTerminal = false,
+                },
+            }
+            dap.configurations.c = dap.configurations.cpp
+            dap.configurations.rust = dap.configurations.cpp
+
+            -- dap.configurations.rust = {
+            --     {
+            --         name = "Launch file",
+            --         type = "codelldb",
+            --         request = "launch",
+            --         program = function()
+            --             return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+            --         end,
+            --         cwd = "${workspaceFolder}",
+            --         stopOnEntry = false,
+            --         runInTerminal = false,
+            --         -- initCommands = function()
+            --         --     -- Find out where to look for the pretty printer Python module
+            --         --     local rustc_sysroot = vim.fn.trim(vim.fn.system('rustc --print sysroot'))
+            --         --
+            --         --     local script_import = 'command script import "' .. rustc_sysroot .. '/lib/rustlib/etc/lldb_lookup.py"'
+            --         --     local commands_file = rustc_sysroot .. '/lib/rustlib/etc/lldb_commands'
+            --         --
+            --         --     local commands = {}
+            --         --     local file = io.open(commands_file, 'r')
+            --         --     if file then
+            --         --         for line in file:lines() do
+            --         --             table.insert(commands, line)
+            --         --         end
+            --         --         file:close()
+            --         --     end
+            --         --     table.insert(commands, 1, script_import)
+            --         --
+            --         --     return commands
+            --         -- end,
+            --     }
+            -- }
+
+        end,
+    },
 
 
     -- LLM coding
@@ -892,25 +1102,25 @@ cmp.setup({
 -- Mason.nvim
 ---
 -- See :help mason-settings
-require("mason").setup({
-    ui = {border = "rounded"}
-})
+-- require("mason").setup({
+--     ui = {border = "rounded"}
+-- })
 
 -- See :help mason-lspconfig-settings
-require("mason-lspconfig").setup({
-    ensure_installed = {
-        "bashls",
-        "clangd",
-        -- "codelldb",
-        "dockerls",
-        "lua_ls",
-        "pylsp",
-        "rust_analyzer",
-        "yamlls",
-        -- "taplo",
-    }
-})
-
+-- require("mason-lspconfig").setup({
+--     ensure_installed = {
+--         "bashls",
+--         "clangd",
+--         "dockerls",
+--         "lua_ls",
+--         "pylsp",
+--         "rust_analyzer",
+--         "yamlls",
+--     },
+--     -- auto-install configured servers (with lspconfig)
+--     automatic_installation = true, -- not the same as ensure_installed
+-- })
+--
 ---
 -- LSP config
 ---
@@ -930,7 +1140,7 @@ lsp_defaults.capabilities = vim.tbl_deep_extend(
 vim.g.diagnostics_active = true
 function _G.toggle_diagnostics()
     if vim.g.diagnostics_active then
-        vim.diagnostic.disable()
+        vim.diagnostic.enable(false)
         vim.g.diagnostics_active = false
     else
         vim.diagnostic.enable()
@@ -963,6 +1173,11 @@ vim.diagnostic.config({
     },
 })
 
+-- there is a bug with documentation hover windows with extra spacing.
+-- https://github.com/neovim/neovim/issues/25366
+--
+-- it seems like the nvim maintainers are just deleting comments about it???
+-- https://github.com/neovim/neovim/issues/25718
 vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
     vim.lsp.handlers.hover,
     {border = "rounded"}
@@ -999,8 +1214,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
         -- bufmap("n", "gr", "<cmd>lua vim.lsp.buf.references()<cr>")
         bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>")
         bufmap("n", "gs", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
-        bufmap("n", "<F2>", "<cmd>lua vim.lsp.buf.rename()<cr>")
-        bufmap({"n", "x"}, "<F3>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
+        bufmap("n", "<F7>", "<cmd>lua vim.lsp.buf.rename()<cr>")
+        bufmap({"n", "x"}, "<F6>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
         bufmap("n", "gl", "<cmd>lua vim.diagnostic.open_float()<cr>")
         bufmap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<cr>")
         bufmap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<cr>")
@@ -1009,6 +1224,24 @@ vim.api.nvim_create_autocmd("LspAttach", {
         bufmap("x", "<F4>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
     end
 })
+
+
+-- lspconfig.rust_analyzer.setup({
+--     filetypes = {"rust"},
+--     on_attach = function(client, bufnr)
+--         vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+--     end,
+--     settings = {
+--         ['rust_analyzer'] = {
+--             cargo = {
+--                 allFeatures = true
+--             },
+--             -- checkOnSave = {
+--             --   command = "clippy"
+--             -- },
+--         },
+--     },
+-- })
 
 
 ---
@@ -1021,8 +1254,37 @@ require("mason-lspconfig").setup_handlers({
         lspconfig[server].setup({})
     end,
     ["rust_analyzer"] = function ()
-        require("rust-tools").setup({
+        local rt = require("rust-tools")
+        -- local mason_registry = require("mason-registry")
+        --
+        -- local codelldb = mason_registry.get_package("codelldb")
+        -- local extension_path = codelldb:get_install_path() .. "/extension/"
+        -- local codelldb_path = extension_path .. "adapter/codelldb"
+        -- local liblldb_path = extension_path .. "lldb/lib/liblldb.dylib"
+
+        local home_path = os.getenv("HOME") .. "/"
+        local mason_path = home_path .. ".local/share/nvim/mason/packages/"
+        local codelldb_path = mason_path .. "codelldb/extension/adapter/codelldb"
+        local liblldb_path = mason_path .. "codelldb/extension/lldb/lib/liblldb.so"
+
+        -- print("codelldb_path = " .. codelldb_path)
+        -- print("liblldb_path = " .. liblldb_path)
+
+        rt.setup({
+            dap = {
+                adapter = require("rust-tools.dap").get_codelldb_adapter(codelldb_path, liblldb_path),
+            },
+            server = {
+                capabilities = require("cmp_nvim_lsp").default_capabilities(),
+                on_attach = function(_, bufnr)
+                    vim.keymap.set("n", "<leader>a", rt.hover_actions.hover_actions, {buffer = bufnr })
+                    vim.keymap.set("n", "<leader>A", rt.code_action_group.code_action_group, {buffer = bufnr })
+                end
+            },
             tools = {
+                inlay_hints = {
+                    auto = false,
+                },
                 hover_actions = {
                     auto_focus = true,
                 },
