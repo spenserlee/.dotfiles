@@ -141,6 +141,7 @@ require("lazy").setup({
             {"<leader>?", "<cmd>FzfLua grep<cr>", desc = "FZF search"},
             {"<leader><space>", "<cmd>FzfLua buffers<cr>", desc = "FZF buffers"},
             -- {"<leader>b", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
+            {"<leader>l", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
             {"<leader>c", "<cmd>FzfLua commands<cr>", desc = "FZF commands"},
             {"<leader>s", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "LSP Document Symbols"},
         },
@@ -722,7 +723,35 @@ require("lazy").setup({
             local dap = require "dap"
             local ui = require "dapui"
 
-            require("dapui").setup()
+            require("dapui").setup({
+                layouts = { {
+                    elements = { {
+                        id = "scopes",
+                        size = 0.35
+                    }, {
+                        id = "breakpoints",
+                        size = 0.15
+                    }, {
+                        id = "stacks",
+                        size = 0.25
+                    }, {
+                        id = "watches",
+                        size = 0.25
+                    } },
+                    position = "left",
+                    size = 70
+                }, {
+                    elements = { {
+                        id = "repl",
+                        size = 0.5
+                    }, {
+                        id = "console",
+                        size = 0.5
+                    } },
+                    position = "bottom",
+                    size = 15
+                } },
+            })
             require("nvim-dap-virtual-text").setup({})
 
             vim.keymap.set("n", "<space>b", dap.toggle_breakpoint)
@@ -762,25 +791,42 @@ require("lazy").setup({
                 },
             }
 
+            dap.adapters.cppdbg = {
+                id = 'cppdbg',
+                type = 'executable',
+                command = bin_locations .. '/OpenDebugAD7',
+            }
+
             dap.configurations.cpp = {
                 {
-                    name = "Launch",
-                    type = "codelldb",
+                    name = "Launch file",
+                    type = "cppdbg",
                     request = "launch",
                     program = function()
-                        return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug/", "file")
+                        return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
                     end,
-                    cwd = "${workspaceFolder}",
-                    stopOnEntry = false,
+                    cwd = '${workspaceFolder}',
+                    stopAtEntry = true,
+                    setupCommands = {
+                        {
+                            text = '-enable-pretty-printing',
+                            description = 'enable pretty printing',
+                            ignoreFailures = false
+                        },
+                    },
                     runInTerminal = false,
+                    -- Prompt for arguments dynamically
+                    args = function()
+                        local input = vim.fn.input('Program arguments: ')
+                        return vim.split(input, " ")  -- Split the input into a list of arguments
+                    end,
                 },
             }
             dap.configurations.c = dap.configurations.cpp
-            dap.configurations.rust = dap.configurations.cpp
 
-            -- dap.configurations.rust = {
+            -- dap.configurations.cpp = {
             --     {
-            --         name = "Launch file",
+            --         name = "Launch",
             --         type = "codelldb",
             --         request = "launch",
             --         program = function()
@@ -789,27 +835,43 @@ require("lazy").setup({
             --         cwd = "${workspaceFolder}",
             --         stopOnEntry = false,
             --         runInTerminal = false,
-            --         -- initCommands = function()
-            --         --     -- Find out where to look for the pretty printer Python module
-            --         --     local rustc_sysroot = vim.fn.trim(vim.fn.system('rustc --print sysroot'))
-            --         --
-            --         --     local script_import = 'command script import "' .. rustc_sysroot .. '/lib/rustlib/etc/lldb_lookup.py"'
-            --         --     local commands_file = rustc_sysroot .. '/lib/rustlib/etc/lldb_commands'
-            --         --
-            --         --     local commands = {}
-            --         --     local file = io.open(commands_file, 'r')
-            --         --     if file then
-            --         --         for line in file:lines() do
-            --         --             table.insert(commands, line)
-            --         --         end
-            --         --         file:close()
-            --         --     end
-            --         --     table.insert(commands, 1, script_import)
-            --         --
-            --         --     return commands
-            --         -- end,
-            --     }
+            --     },
             -- }
+            -- dap.configurations.c = dap.configurations.cpp
+            -- dap.configurations.rust = dap.configurations.cpp
+
+            dap.configurations.rust = {
+                {
+                    name = "Launch",
+                    type = "codelldb",
+                    request = "launch",
+                    program = function()
+                        return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug", "file")
+                    end,
+                    cwd = "${workspaceFolder}",
+                    stopOnEntry = false,
+                    runInTerminal = false,
+                    initCommands = function()
+                        -- Find out where to look for the pretty printer Python module
+                        local rustc_sysroot = vim.fn.trim(vim.fn.system('rustc --print sysroot'))
+
+                        local script_import = 'command script import "' .. rustc_sysroot .. '/lib/rustlib/etc/lldb_lookup.py"'
+                        local commands_file = rustc_sysroot .. '/lib/rustlib/etc/lldb_commands'
+
+                        local commands = {}
+                        local file = io.open(commands_file, 'r')
+                        if file then
+                            for line in file:lines() do
+                                table.insert(commands, line)
+                            end
+                            file:close()
+                        end
+                        table.insert(commands, 1, script_import)
+
+                        return commands
+                    end,
+                }
+            }
 
         end,
     },
@@ -1220,8 +1282,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
         bufmap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<cr>")
         bufmap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<cr>")
 
-        bufmap("n", "<F4>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
-        bufmap("x", "<F4>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
+        bufmap("n", "<F8>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
+        bufmap("x", "<F8>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
     end
 })
 
