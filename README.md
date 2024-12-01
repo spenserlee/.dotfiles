@@ -19,9 +19,30 @@ New machine:
         xargs -I{} mv {} .config-backup/{}
     dotfig checkout
     dotfig config --local status.showUntrackedFiles no
-    dotfig fetch origin '*:*' # fetch remote branches
 
 ---
+
+## TODO / NOTES:
+
+* neovim plugins tbd
+    * LSP / DAP
+    * treesitter
+    * whichkey
+    * quickfix
+
+* tmux session save/restore
+
+* fix italics not working in tmux
+    * <https://old.reddit.com/r/tmux/comments/yd62te/i_really_need_help_with_italic_and_truecolor>
+
+* fix git gutter / fugitive not working for bare repo
+    * workaround is to invoke nvim after setting some env vars:
+        `GIT_DIR=$HOME/.dotfiles GIT_WORK_TREE=$HOME nvim`
+    * similar problem discussed here:
+      * <https://github.com/tpope/vim-fugitive/issues/1981#issuecomment-1107388377>
+      * <https://stackoverflow.com/a/66624354/5323947>
+
+* try out ZSH
 
 ## Installation
 
@@ -80,27 +101,3 @@ sudo apt install npm
 curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
 ```
----
-
-## TODO / NOTES:
-
-* neovim plugins tbd
-    * LSP / DAP
-    * treesitter
-    * whichkey
-    * quickfix
-
-* tmux session save/restore
-
-* fix italics not working in tmux
-    * <https://old.reddit.com/r/tmux/comments/yd62te/i_really_need_help_with_italic_and_truecolor>
-
-* fix git gutter / fugitive not working for bare repo
-    * workaround is to invoke nvim after setting some env vars:
-        `GIT_DIR=$HOME/.dotfiles GIT_WORK_TREE=$HOME nvim`
-    * similar problem discussed here:
-      * <https://github.com/tpope/vim-fugitive/issues/1981#issuecomment-1107388377>
-      * <https://stackoverflow.com/a/66624354/5323947>
-
-* try out ZSH
-
