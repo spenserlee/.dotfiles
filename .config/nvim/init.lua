@@ -773,6 +773,8 @@ require("lazy").setup({
             local dap = require "dap"
             local ui = require "dapui"
 
+            -- command to reset DAP UI panes
+            -- :lua require('dapui').toggle({reset=true})
             require("dapui").setup({
                 layouts = { {
                     elements = { {
@@ -817,17 +819,21 @@ require("lazy").setup({
             vim.keymap.set("n", "<F3>", dap.step_over)
             vim.keymap.set("n", "<F4>", dap.step_out)
             vim.keymap.set("n", "<F5>", dap.step_back) -- only for rr?
+
+            vim.keymap.set('n', '<F6>', dap.up)
+            vim.keymap.set('n', '<F7>', dap.down)
+
             vim.keymap.set("n", "<F10>", dap.restart)
+
+            -- NOTE: you can execute GDB commands in the DAP-REPL window with `-exec` prefix
+            -- -exec p/x cur
+            -- $2 = 0x7fffd96ef052
 
             dap.listeners.before.attach.dapui_config = function() ui.open() end
             dap.listeners.before.launch.dapui_config = function() ui.open() end
             dap.listeners.before.event_terminated.dapui_config = function() ui.close() end
             dap.listeners.before.event_exited.dapui_config = function() ui.close() end
 
-            -- local bin_locations = vim.fn.stdpath("data") .. "/mason/bin/"
-            --
-            -- local mason_registry = require("mason-registry")
-            -- local bin_locations = mason_registry.get_installed_packages
             local home_path = os.getenv("HOME") .. "/"
             local bin_locations = home_path .. ".local/share/nvim/mason/bin"
 
@@ -873,22 +879,6 @@ require("lazy").setup({
                 },
             }
             dap.configurations.c = dap.configurations.cpp
-
-            -- dap.configurations.cpp = {
-            --     {
-            --         name = "Launch",
-            --         type = "codelldb",
-            --         request = "launch",
-            --         program = function()
-            --             return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
-            --         end,
-            --         cwd = "${workspaceFolder}",
-            --         stopOnEntry = false,
-            --         runInTerminal = false,
-            --     },
-            -- }
-            -- dap.configurations.c = dap.configurations.cpp
-            -- dap.configurations.rust = dap.configurations.cpp
 
             dap.configurations.rust = {
                 {
@@ -1017,97 +1007,6 @@ require("lazy").setup({
             -- vim.keymap.set({ 'n', 'v' }, '<leader>G', groq_help, { desc = 'llm groq_help' })
             vim.keymap.set({ 'n', 'v' }, '<leader>k', gemeni_replace, { desc = 'llm gemeni' })
             vim.keymap.set({ 'n', 'v' }, '<leader>K', gemeni_help, { desc = 'llm gemeni_help' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>o', llama_405b_base, { desc = 'llama base' })
-
-            -- local function handle_open_router_spec_data(data_stream)
-            --     local success, json = pcall(vim.json.decode, data_stream)
-            --     if success then
-            --         if json.choices and json.choices[1] and json.choices[1].text then
-            --             local content = json.choices[1].text
-            --             if content then
-            --                 dingllm.write_string_at_cursor(content)
-            --             end
-            --         end
-            --     else
-            --         print("non json " .. data_stream)
-            --     end
-            -- end
-            --
-            -- local function custom_make_openai_spec_curl_args(opts, prompt)
-            --     local url = opts.url
-            --     local api_key = opts.api_key_name and os.getenv(opts.api_key_name)
-            --     local data = {
-            --         prompt = prompt,
-            --         model = opts.model,
-            --         temperature = 0.7,
-            --         stream = true,
-            --     }
-            --     local args = { '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
-            --     if api_key then
-            --         table.insert(args, '-H')
-            --         table.insert(args, 'Authorization: Bearer ' .. api_key)
-            --     end
-            --     table.insert(args, url)
-            --     return args
-            -- end
-            --
-            -- local function llama_405b_base()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://openrouter.ai/api/v1/chat/completions',
-            --         model = 'meta-llama/llama-3.1-405b',
-            --         api_key_name = 'OPEN_ROUTER_API_KEY',
-            --         max_tokens = '128',
-            --         replace = false,
-            --     }, custom_make_openai_spec_curl_args, handle_open_router_spec_data)
-            -- end
-            --
-            -- local function llama405b_replace()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://api.lambdalabs.com/v1/chat/completions',
-            --         model = 'hermes-3-llama-3.1-405b-fp8',
-            --         api_key_name = 'LAMBDA_API_KEY',
-            --         system_prompt = system_prompt,
-            --         replace = true,
-            --     }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-            -- end
-            --
-            -- local function llama405b_help()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://api.lambdalabs.com/v1/chat/completions',
-            --         model = 'hermes-3-llama-3.1-405b-fp8',
-            --         api_key_name = 'LAMBDA_API_KEY',
-            --         system_prompt = helpful_prompt,
-            --         replace = false,
-            --     }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-            -- end
-            --
-            -- local function anthropic_help()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://api.anthropic.com/v1/messages',
-            --         model = 'claude-3-5-sonnet-20240620',
-            --         api_key_name = 'ANTHROPIC_API_KEY',
-            --         system_prompt = helpful_prompt,
-            --         replace = false,
-            --     }, dingllm.make_anthropic_spec_curl_args, dingllm.handle_anthropic_spec_data)
-            -- end
-            --
-            -- local function anthropic_replace()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://api.anthropic.com/v1/messages',
-            --         model = 'claude-3-5-sonnet-20240620',
-            --         api_key_name = 'ANTHROPIC_API_KEY',
-            --         system_prompt = system_prompt,
-            --         replace = true,
-            --     }, dingllm.make_anthropic_spec_curl_args, dingllm.handle_anthropic_spec_data)
-            -- end
-
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>k', groq_replace, { desc = 'llm groq' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>K', groq_help, { desc = 'llm groq_help' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>L', llama405b_help, { desc = 'llm llama405b_help' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>l', llama405b_replace, { desc = 'llm llama405b_replace' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>I', anthropic_help, { desc = 'llm anthropic_help' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>i', anthropic_replace, { desc = 'llm anthropic' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>o', llama_405b_base, { desc = 'llama base' })
         end,
     },
 })
@@ -1326,8 +1225,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
         -- bufmap("n", "gr", "<cmd>lua vim.lsp.buf.references()<cr>")
         bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>")
         bufmap("n", "gs", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
-        bufmap("n", "<F7>", "<cmd>lua vim.lsp.buf.rename()<cr>")
-        bufmap({"n", "x"}, "<F6>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
+        bufmap("n", "<F11>", "<cmd>lua vim.lsp.buf.rename()<cr>")
+        bufmap({"n", "x"}, "<F12>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
         bufmap("n", "gl", "<cmd>lua vim.diagnostic.open_float()<cr>")
         bufmap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<cr>")
         bufmap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<cr>")
@@ -1401,6 +1300,23 @@ require("mason-lspconfig").setup_handlers({
                     auto_focus = true,
                 },
             },
+            -- why the hell doesn't clippy work... ffs man the documentation is
+            -- a clusterfuck. 20 pages of issues no full solutions...
+            cargo = {
+                allFeatures = true,
+            },
+            checkOnSave = {
+                enable = true,
+                command = "clippy",
+                extraArgs = {
+                    "--",
+                    "--no-deps",
+                    "-Dclippy::correctness",
+                    "-Dclippy::complexity",
+                    "-Wclippy::perf",
+                    "-Wclippy::pedantic",
+                },
+            }
         })
     end,
     ["lua_ls"] = function ()
