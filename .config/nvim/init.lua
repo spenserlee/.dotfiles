@@ -33,6 +33,56 @@ vim.cmd[[
     augroup END
 ]]
 
+-- Function to generate and execute a sed command based on visual selection
+local function generate_and_execute_sed_command(args)
+    -- Get the current visual selection range
+    local start_line = vim.fn.line("'<")
+    local end_line = vim.fn.line("'>")
+
+    -- Get the full path to the current buffer file, properly quoted
+    local file_path = vim.fn.shellescape(vim.fn.expand("%:p"))
+    if file_path == "" then
+        print("Buffer does not have a file path.")
+        return
+    end
+
+    -- Construct the sed command
+    local sed_command = string.format("sed -n '%d,%dp' %s", start_line, end_line, file_path)
+
+    -- print("Running command: " .. sed_command)
+    print(sed_command)
+
+    -- Execute the command and capture the output
+    local output = vim.fn.system(sed_command)
+    -- local output = raw_output:gsub("\r\n", "\n"):gsub("\r", "\n")
+
+    -- Check if "buffer" argument is passed
+    if args.args == "buffer" then
+        -- Print the output in a new buffer
+        vim.cmd("new") -- Open a new split
+        vim.cmd("setlocal buftype=nofile") -- Make the buffer a scratch buffer
+        vim.cmd("setlocal bufhidden=wipe") -- Wipe the buffer when closed
+        vim.cmd("setlocal noswapfile") -- Disable swapfile for this buffer
+        vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(output, "\n"))
+    else
+        -- TODO: fix the newlines not working in output pane...
+        -- Print the output inline in the command area for easy copy paste
+        vim.api.nvim_out_write(output)
+    end
+end
+
+-- Create a Neovim command to run the function
+vim.api.nvim_create_user_command(
+    "SedDump",
+    generate_and_execute_sed_command,
+    {
+        range = true,
+        nargs = "?",
+        desc = "Generate and execute sed command based on visual selection (optionally output to buffer)"
+    }
+)
+
+
 -- Plugins
 require("lazy").setup({
     {
@@ -137,10 +187,11 @@ require("lazy").setup({
             {"<leader>ff", "<cmd>FzfLua files<cr>", desc = "FZF files"},
             {"<leader>fr", "<cmd>FzfLua oldfiles<cr>", desc = "FZF recent files"},
             {"<leader>/", "<cmd>FzfLua grep_cword<cr>", desc = "FZF word under cursor"},
-            {"<leader>l", "<cmd>FzfLua resume<cr>", desc = "FZF resume last search"},
+            {"<leader>L", "<cmd>FzfLua resume<cr>", desc = "FZF resume last search"},
             {"<leader>?", "<cmd>FzfLua grep<cr>", desc = "FZF search"},
             {"<leader><space>", "<cmd>FzfLua buffers<cr>", desc = "FZF buffers"},
-            {"<leader>b", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
+            -- {"<leader>b", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
+            {"<leader>l", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
             {"<leader>c", "<cmd>FzfLua commands<cr>", desc = "FZF commands"},
             {"<leader>s", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "LSP Document Symbols"},
         },
@@ -403,7 +454,10 @@ require("lazy").setup({
                     require("neodev").setup()
                 end
             },
-        }
+        },
+        inlay_hints = {
+            enable = true,
+        },
     },
     -- TODO: get nvim-dap working with rust.. it's a huge pain..
     {
@@ -416,8 +470,92 @@ require("lazy").setup({
             "MasonUninstallAll",
             "MasonLog",
         },
+        dependencies = {
+            "williamboman/mason-lspconfig.nvim",
+            "WhoIsSethDaniel/mason-tool-installer.nvim",
+            "mfussenegger/nvim-dap",
+            "jay-babu/mason-nvim-dap.nvim",
+        },
+        config = function()
+            -- import mason
+            local mason = require("mason")
+
+            -- import mason-lspconfig
+            local mason_lspconfig = require("mason-lspconfig")
+            local mason_tool_installer = require("mason-tool-installer")
+            local mason_dap = require("mason-nvim-dap")
+
+            -- enable mason and configure icons
+            mason.setup({
+                ui = {
+                    border = "rounded",
+                    icons = {
+                        package_installed = "✓",
+                        package_pending = "➜",
+                        package_uninstalled = "✗",
+                    },
+                },
+            })
+
+            mason_lspconfig.setup({
+                ensure_installed = {
+                    "bashls",
+                    "clangd",
+                    "dockerls",
+                    "lua_ls",
+                    "pylsp",
+                    "rust_analyzer",
+                    "yamlls",
+                },
+                -- auto-install configured servers (with lspconfig)
+                automatic_installation = true, -- not the same as ensure_installed
+            })
+
+            mason_tool_installer.setup({
+                ensure_installed = {
+
+                    -- Formatter and Linters
+                    "cmakelang", -- CMake
+                    "markdownlint", --Markdown
+
+                    -- Linters
+                    -- "pylint", -- Python
+                    -- "eslint_d", -- Javascript and more
+                    -- "cmakelint", -- CMake
+                    -- "luacheck", -- Lua
+                    -- "jsonlint", -- Json
+                    -- "golangci-lint", -- Golang
+                    -- "checkstyle", -- Overall
+                    -- "yamllint", -- Yaml
+                    -- "stylelint", -- CSS/SCSS etc
+
+                    -- Formatters
+                    -- "stylua", -- lua
+                    -- "prettier",
+                    -- "isort", -- python
+                    -- "black", -- python
+                    -- "htmlbeautifier", -- HTML
+                    -- "beautysh", --Shell
+                    -- "latexindent", --Latex
+                    -- "csharpier", --C#
+                    -- "clang-format", --C/C++
+                    -- "pretty-php", --PHP
+
+                    -- Debugger adapters
+                    "bash-debug-adapter", -- Shell
+                    "codelldb", -- C/C++/Rust
+                    -- "debugpy", -- Python
+                    -- "java-debug-adapter", -- Java
+                    -- "js-debug-adapter", -- Javascript
+                    -- "kotlin-debug-adapter", -- Kotlin
+                    -- "netcoredbg", -- C#
+                    -- "php-debug-adapter", -- PHP
+                },
+            })
+
+            local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
+        end,
     },
-    {"williamboman/mason-lspconfig.nvim"},
     {
         "rust-lang/rust.vim",
         ft = "rust",
@@ -425,7 +563,28 @@ require("lazy").setup({
             -- vim.g.rustfmt_autosave = 1
         end
     },
-    {"simrat39/rust-tools.nvim"},
+    -- {"simrat39/rust-tools.nvim"},
+    {
+        "Ciel-MC/rust-tools.nvim",
+        ft = "rust",
+    },
+    {
+        -- nice plugin which solves the terrible native lsp inlay hint behaviour.
+        "chrisgrieser/nvim-lsp-endhints",
+        event = "LspAttach",
+        opts = {}, -- required, even if empty
+        init = function()
+            require("lsp-endhints").setup({
+                icons = {
+                    type = "=> ",
+                    parameter = "<- ",
+                },
+            })
+        end
+        -- useful command to toggle inlay hint native display
+        -- require("lsp-endhints").toggle()
+    },
+
 
     -- rustaceanvim supposedly replaces rust-tools and claims "no setup", but I
     -- cannot get it to work...
@@ -602,7 +761,160 @@ require("lazy").setup({
     {"rafamadriz/friendly-snippets"},
 
     -- Debugging
-    -- {"mfussenegger/nvim-dap"},
+    {
+        "mfussenegger/nvim-dap",
+        dependencies = {
+            "rcarriga/nvim-dap-ui",
+            "theHamsta/nvim-dap-virtual-text",
+            "nvim-neotest/nvim-nio",
+            "williamboman/mason.nvim",
+        },
+        config = function()
+            local dap = require "dap"
+            local ui = require "dapui"
+
+            -- command to reset DAP UI panes
+            -- :lua require('dapui').toggle({reset=true})
+            require("dapui").setup({
+                layouts = { {
+                    elements = { {
+                        id = "scopes",
+                        size = 0.35
+                    }, {
+                        id = "breakpoints",
+                        size = 0.15
+                    }, {
+                        id = "stacks",
+                        size = 0.25
+                    }, {
+                        id = "watches",
+                        size = 0.25
+                    } },
+                    position = "left",
+                    size = 70
+                }, {
+                    elements = { {
+                        id = "repl",
+                        size = 0.5
+                    }, {
+                        id = "console",
+                        size = 0.5
+                    } },
+                    position = "bottom",
+                    size = 15
+                } },
+            })
+            require("nvim-dap-virtual-text").setup({})
+
+            vim.keymap.set("n", "<space>b", dap.toggle_breakpoint)
+            vim.keymap.set("n", "<space>gb", dap.run_to_cursor)
+
+            -- Eval var under cursor
+            vim.keymap.set("n", "<space>;", function()
+                require("dapui").eval(nil, { enter = true })
+            end)
+
+            vim.keymap.set("n", "<F1>", dap.continue)
+            vim.keymap.set("n", "<F2>", dap.step_into)
+            vim.keymap.set("n", "<F3>", dap.step_over)
+            vim.keymap.set("n", "<F4>", dap.step_out)
+            vim.keymap.set("n", "<F5>", dap.step_back) -- only for rr?
+
+            vim.keymap.set('n', '<F6>', dap.up)
+            vim.keymap.set('n', '<F7>', dap.down)
+
+            vim.keymap.set("n", "<F10>", dap.restart)
+
+            -- NOTE: you can execute GDB commands in the DAP-REPL window with `-exec` prefix
+            -- -exec p/x cur
+            -- $2 = 0x7fffd96ef052
+
+            dap.listeners.before.attach.dapui_config = function() ui.open() end
+            dap.listeners.before.launch.dapui_config = function() ui.open() end
+            dap.listeners.before.event_terminated.dapui_config = function() ui.close() end
+            dap.listeners.before.event_exited.dapui_config = function() ui.close() end
+
+            local home_path = os.getenv("HOME") .. "/"
+            local bin_locations = home_path .. ".local/share/nvim/mason/bin"
+
+            dap.adapters.codelldb = {
+                type = "server",
+                port = "${port}",
+                host = "127.0.0.1",
+                executable = {
+                    command = bin_locations .. "codelldb",
+                    args = { "--port", "${port}" },
+                },
+            }
+
+            dap.adapters.cppdbg = {
+                id = 'cppdbg',
+                type = 'executable',
+                command = bin_locations .. '/OpenDebugAD7',
+            }
+
+            dap.configurations.cpp = {
+                {
+                    name = "Launch file",
+                    type = "cppdbg",
+                    request = "launch",
+                    program = function()
+                        return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+                    end,
+                    cwd = '${workspaceFolder}',
+                    stopAtEntry = true,
+                    setupCommands = {
+                        {
+                            text = '-enable-pretty-printing',
+                            description = 'enable pretty printing',
+                            ignoreFailures = false
+                        },
+                    },
+                    runInTerminal = false,
+                    -- Prompt for arguments dynamically
+                    args = function()
+                        local input = vim.fn.input('Program arguments: ')
+                        return vim.split(input, " ")  -- Split the input into a list of arguments
+                    end,
+                },
+            }
+            dap.configurations.c = dap.configurations.cpp
+
+            dap.configurations.rust = {
+                {
+                    name = "Launch",
+                    type = "codelldb",
+                    request = "launch",
+                    program = function()
+                        return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug", "file")
+                    end,
+                    cwd = "${workspaceFolder}",
+                    stopOnEntry = false,
+                    runInTerminal = false,
+                    initCommands = function()
+                        -- Find out where to look for the pretty printer Python module
+                        local rustc_sysroot = vim.fn.trim(vim.fn.system('rustc --print sysroot'))
+
+                        local script_import = 'command script import "' .. rustc_sysroot .. '/lib/rustlib/etc/lldb_lookup.py"'
+                        local commands_file = rustc_sysroot .. '/lib/rustlib/etc/lldb_commands'
+
+                        local commands = {}
+                        local file = io.open(commands_file, 'r')
+                        if file then
+                            for line in file:lines() do
+                                table.insert(commands, line)
+                            end
+                            file:close()
+                        end
+                        table.insert(commands, 1, script_import)
+
+                        return commands
+                    end,
+                }
+            }
+
+        end,
+    },
 
 
     -- LLM coding
@@ -695,97 +1007,6 @@ require("lazy").setup({
             -- vim.keymap.set({ 'n', 'v' }, '<leader>G', groq_help, { desc = 'llm groq_help' })
             vim.keymap.set({ 'n', 'v' }, '<leader>k', gemeni_replace, { desc = 'llm gemeni' })
             vim.keymap.set({ 'n', 'v' }, '<leader>K', gemeni_help, { desc = 'llm gemeni_help' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>o', llama_405b_base, { desc = 'llama base' })
-
-            -- local function handle_open_router_spec_data(data_stream)
-            --     local success, json = pcall(vim.json.decode, data_stream)
-            --     if success then
-            --         if json.choices and json.choices[1] and json.choices[1].text then
-            --             local content = json.choices[1].text
-            --             if content then
-            --                 dingllm.write_string_at_cursor(content)
-            --             end
-            --         end
-            --     else
-            --         print("non json " .. data_stream)
-            --     end
-            -- end
-            --
-            -- local function custom_make_openai_spec_curl_args(opts, prompt)
-            --     local url = opts.url
-            --     local api_key = opts.api_key_name and os.getenv(opts.api_key_name)
-            --     local data = {
-            --         prompt = prompt,
-            --         model = opts.model,
-            --         temperature = 0.7,
-            --         stream = true,
-            --     }
-            --     local args = { '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
-            --     if api_key then
-            --         table.insert(args, '-H')
-            --         table.insert(args, 'Authorization: Bearer ' .. api_key)
-            --     end
-            --     table.insert(args, url)
-            --     return args
-            -- end
-            --
-            -- local function llama_405b_base()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://openrouter.ai/api/v1/chat/completions',
-            --         model = 'meta-llama/llama-3.1-405b',
-            --         api_key_name = 'OPEN_ROUTER_API_KEY',
-            --         max_tokens = '128',
-            --         replace = false,
-            --     }, custom_make_openai_spec_curl_args, handle_open_router_spec_data)
-            -- end
-            --
-            -- local function llama405b_replace()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://api.lambdalabs.com/v1/chat/completions',
-            --         model = 'hermes-3-llama-3.1-405b-fp8',
-            --         api_key_name = 'LAMBDA_API_KEY',
-            --         system_prompt = system_prompt,
-            --         replace = true,
-            --     }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-            -- end
-            --
-            -- local function llama405b_help()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://api.lambdalabs.com/v1/chat/completions',
-            --         model = 'hermes-3-llama-3.1-405b-fp8',
-            --         api_key_name = 'LAMBDA_API_KEY',
-            --         system_prompt = helpful_prompt,
-            --         replace = false,
-            --     }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-            -- end
-            --
-            -- local function anthropic_help()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://api.anthropic.com/v1/messages',
-            --         model = 'claude-3-5-sonnet-20240620',
-            --         api_key_name = 'ANTHROPIC_API_KEY',
-            --         system_prompt = helpful_prompt,
-            --         replace = false,
-            --     }, dingllm.make_anthropic_spec_curl_args, dingllm.handle_anthropic_spec_data)
-            -- end
-            --
-            -- local function anthropic_replace()
-            --     dingllm.invoke_llm_and_stream_into_editor({
-            --         url = 'https://api.anthropic.com/v1/messages',
-            --         model = 'claude-3-5-sonnet-20240620',
-            --         api_key_name = 'ANTHROPIC_API_KEY',
-            --         system_prompt = system_prompt,
-            --         replace = true,
-            --     }, dingllm.make_anthropic_spec_curl_args, dingllm.handle_anthropic_spec_data)
-            -- end
-
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>k', groq_replace, { desc = 'llm groq' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>K', groq_help, { desc = 'llm groq_help' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>L', llama405b_help, { desc = 'llm llama405b_help' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>l', llama405b_replace, { desc = 'llm llama405b_replace' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>I', anthropic_help, { desc = 'llm anthropic_help' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>i', anthropic_replace, { desc = 'llm anthropic' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>o', llama_405b_base, { desc = 'llama base' })
         end,
     },
 })
@@ -892,25 +1113,25 @@ cmp.setup({
 -- Mason.nvim
 ---
 -- See :help mason-settings
-require("mason").setup({
-    ui = {border = "rounded"}
-})
+-- require("mason").setup({
+--     ui = {border = "rounded"}
+-- })
 
 -- See :help mason-lspconfig-settings
-require("mason-lspconfig").setup({
-    ensure_installed = {
-        "bashls",
-        "clangd",
-        -- "codelldb",
-        "dockerls",
-        "lua_ls",
-        "pylsp",
-        "rust_analyzer",
-        "yamlls",
-        -- "taplo",
-    }
-})
-
+-- require("mason-lspconfig").setup({
+--     ensure_installed = {
+--         "bashls",
+--         "clangd",
+--         "dockerls",
+--         "lua_ls",
+--         "pylsp",
+--         "rust_analyzer",
+--         "yamlls",
+--     },
+--     -- auto-install configured servers (with lspconfig)
+--     automatic_installation = true, -- not the same as ensure_installed
+-- })
+--
 ---
 -- LSP config
 ---
@@ -930,7 +1151,7 @@ lsp_defaults.capabilities = vim.tbl_deep_extend(
 vim.g.diagnostics_active = true
 function _G.toggle_diagnostics()
     if vim.g.diagnostics_active then
-        vim.diagnostic.disable()
+        vim.diagnostic.enable(false)
         vim.g.diagnostics_active = false
     else
         vim.diagnostic.enable()
@@ -963,6 +1184,11 @@ vim.diagnostic.config({
     },
 })
 
+-- there is a bug with documentation hover windows with extra spacing.
+-- https://github.com/neovim/neovim/issues/25366
+--
+-- it seems like the nvim maintainers are just deleting comments about it???
+-- https://github.com/neovim/neovim/issues/25718
 vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
     vim.lsp.handlers.hover,
     {border = "rounded"}
@@ -999,16 +1225,34 @@ vim.api.nvim_create_autocmd("LspAttach", {
         -- bufmap("n", "gr", "<cmd>lua vim.lsp.buf.references()<cr>")
         bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>")
         bufmap("n", "gs", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
-        bufmap("n", "<F2>", "<cmd>lua vim.lsp.buf.rename()<cr>")
-        bufmap({"n", "x"}, "<F3>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
+        bufmap("n", "<F11>", "<cmd>lua vim.lsp.buf.rename()<cr>")
+        bufmap({"n", "x"}, "<F12>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
         bufmap("n", "gl", "<cmd>lua vim.diagnostic.open_float()<cr>")
         bufmap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<cr>")
         bufmap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<cr>")
 
-        bufmap("n", "<F4>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
-        bufmap("x", "<F4>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
+        bufmap("n", "<F8>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
+        bufmap("x", "<F8>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
     end
 })
+
+
+-- lspconfig.rust_analyzer.setup({
+--     filetypes = {"rust"},
+--     on_attach = function(client, bufnr)
+--         vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+--     end,
+--     settings = {
+--         ['rust_analyzer'] = {
+--             cargo = {
+--                 allFeatures = true
+--             },
+--             -- checkOnSave = {
+--             --   command = "clippy"
+--             -- },
+--         },
+--     },
+-- })
 
 
 ---
@@ -1021,12 +1265,58 @@ require("mason-lspconfig").setup_handlers({
         lspconfig[server].setup({})
     end,
     ["rust_analyzer"] = function ()
-        require("rust-tools").setup({
+        local rt = require("rust-tools")
+        -- local mason_registry = require("mason-registry")
+        --
+        -- local codelldb = mason_registry.get_package("codelldb")
+        -- local extension_path = codelldb:get_install_path() .. "/extension/"
+        -- local codelldb_path = extension_path .. "adapter/codelldb"
+        -- local liblldb_path = extension_path .. "lldb/lib/liblldb.dylib"
+
+        local home_path = os.getenv("HOME") .. "/"
+        local mason_path = home_path .. ".local/share/nvim/mason/packages/"
+        local codelldb_path = mason_path .. "codelldb/extension/adapter/codelldb"
+        local liblldb_path = mason_path .. "codelldb/extension/lldb/lib/liblldb.so"
+
+        -- print("codelldb_path = " .. codelldb_path)
+        -- print("liblldb_path = " .. liblldb_path)
+
+        rt.setup({
+            dap = {
+                adapter = require("rust-tools.dap").get_codelldb_adapter(codelldb_path, liblldb_path),
+            },
+            server = {
+                capabilities = require("cmp_nvim_lsp").default_capabilities(),
+                on_attach = function(_, bufnr)
+                    vim.keymap.set("n", "<leader>a", rt.hover_actions.hover_actions, {buffer = bufnr })
+                    vim.keymap.set("n", "<leader>A", rt.code_action_group.code_action_group, {buffer = bufnr })
+                end
+            },
             tools = {
+                inlay_hints = {
+                    auto = false,
+                },
                 hover_actions = {
                     auto_focus = true,
                 },
             },
+            -- why the hell doesn't clippy work... ffs man the documentation is
+            -- a clusterfuck. 20 pages of issues no full solutions...
+            cargo = {
+                allFeatures = true,
+            },
+            checkOnSave = {
+                enable = true,
+                command = "clippy",
+                extraArgs = {
+                    "--",
+                    "--no-deps",
+                    "-Dclippy::correctness",
+                    "-Dclippy::complexity",
+                    "-Wclippy::perf",
+                    "-Wclippy::pedantic",
+                },
+            }
         })
     end,
     ["lua_ls"] = function ()
