@@ -33,6 +33,56 @@ vim.cmd[[
     augroup END
 ]]
 
+-- Function to generate and execute a sed command based on visual selection
+local function generate_and_execute_sed_command(args)
+    -- Get the current visual selection range
+    local start_line = vim.fn.line("'<")
+    local end_line = vim.fn.line("'>")
+
+    -- Get the full path to the current buffer file, properly quoted
+    local file_path = vim.fn.shellescape(vim.fn.expand("%:p"))
+    if file_path == "" then
+        print("Buffer does not have a file path.")
+        return
+    end
+
+    -- Construct the sed command
+    local sed_command = string.format("sed -n '%d,%dp' %s", start_line, end_line, file_path)
+
+    -- print("Running command: " .. sed_command)
+    print(sed_command)
+
+    -- Execute the command and capture the output
+    local output = vim.fn.system(sed_command)
+    -- local output = raw_output:gsub("\r\n", "\n"):gsub("\r", "\n")
+
+    -- Check if "buffer" argument is passed
+    if args.args == "buffer" then
+        -- Print the output in a new buffer
+        vim.cmd("new") -- Open a new split
+        vim.cmd("setlocal buftype=nofile") -- Make the buffer a scratch buffer
+        vim.cmd("setlocal bufhidden=wipe") -- Wipe the buffer when closed
+        vim.cmd("setlocal noswapfile") -- Disable swapfile for this buffer
+        vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(output, "\n"))
+    else
+        -- TODO: fix the newlines not working in output pane...
+        -- Print the output inline in the command area for easy copy paste
+        vim.api.nvim_out_write(output)
+    end
+end
+
+-- Create a Neovim command to run the function
+vim.api.nvim_create_user_command(
+    "SedDump",
+    generate_and_execute_sed_command,
+    {
+        range = true,
+        nargs = "?",
+        desc = "Generate and execute sed command based on visual selection (optionally output to buffer)"
+    }
+)
+
+
 -- Plugins
 require("lazy").setup({
     {
