@@ -120,3 +120,25 @@ sudo apt install npm
 curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
 ```
+* Luarocks
+```
+# get latest release: http://luarocks.github.io/luarocks/releases
+sudo apt install build-essential libreadline-dev unzip
+
+
+# install latest lua (maybe not necessary...?)
+curl -L -R -O https://www.lua.org/ftp/lua-5.4.7.tar.gz
+tar zxf lua-5.4.7.tar.gz
+cd lua-5.4.7
+make linux test
+sudo make install
+cd ../
+
+# install laurocks
+cd luarocks-3.11.1/
+./configure --with-lua-include=/usr/local/include
+make
+sudo make install
+sudo apt install lua5.1
+
+```
