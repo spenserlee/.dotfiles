@@ -1,6 +1,13 @@
 -- Keep nvim/vim independent configs in vimscript for basic functionality
 vim.cmd("source ~/.config/nvim/viml/init.vim")
 
+-- TODO:
+--  * fix rust debugging executable, tests work, but nothing else.
+--  * update neovim to latest 10.2
+--  * switch to rustaceanvim
+--  * verify debugging still works.
+--
+
 -- @nocheckin
 -- good references
 -- https://github.com/Alexis12119/nvim-config/blob/main/lua/core/autocommands.lua
@@ -842,7 +849,7 @@ require("lazy").setup({
                 port = "${port}",
                 host = "127.0.0.1",
                 executable = {
-                    command = bin_locations .. "codelldb",
+                    command = bin_locations .. "/codelldb",
                     args = { "--port", "${port}" },
                 },
             }
