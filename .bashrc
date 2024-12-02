@@ -12,10 +12,6 @@ esac
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 
-# TODO; branch out dotfiles for work PC?
-export USESUDO=/usr/bin/sudo
-export FORTIPKG=/home/slee01/fortipkg
-
 # dotfiles config git management
 alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
@@ -27,9 +23,6 @@ alias windir="cd /mnt/c/Users/Spenser"
 alias vim='nvim'
 alias vi='nvim'
 alias v='nvim'
-
-alias fgvm="sudo ip netns exec kvm_ns1"
-alias fgvm2="sudo ip netns exec kvm_ns2"
 
 export VISUAL=nvim
 export EDITOR="$VISUAL"
