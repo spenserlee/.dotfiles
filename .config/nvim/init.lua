@@ -579,6 +579,9 @@ require("lazy").setup({
                         show_parameter_hints = true,
                         parameter_hints_prefix = "<- ",
                         other_hints_prefix = "=> ",
+                    },
+                    float_win_config = {
+                        border = 'rounded',
                     }
                 },
                 -- LSP configuration
@@ -626,6 +629,17 @@ require("lazy").setup({
                 -- DAP configuration
                 dap = {},
             }
+            -- workaround fix for error: "LSP: rust_analyzer: -32802: server cancelled the request"
+            -- https://github.com/neovim/neovim/issues/30985
+            for _, method in ipairs({ 'textDocument/diagnostic', 'workspace/diagnostic' }) do
+                local default_diagnostic_handler = vim.lsp.handlers[method]
+                vim.lsp.handlers[method] = function(err, result, context, config)
+                    if err ~= nil and err.code == -32802 then
+                        return
+                    end
+                    return default_diagnostic_handler(err, result, context, config)
+                end
+            end
          end
      },
     {
@@ -765,16 +779,135 @@ require("lazy").setup({
     -- },
 
     -- Autocomplete
-    {"hrsh7th/nvim-cmp"},
-    {"hrsh7th/cmp-buffer"},
-    {"hrsh7th/cmp-path"},
-    {"hrsh7th/cmp-nvim-lsp"},
-    {"saadparwaiz1/cmp_luasnip"},
+    {
+        "hrsh7th/nvim-cmp",
+        event = "InsertEnter",
+        dependencies = {
+            "hrsh7th/cmp-buffer",
+            "hrsh7th/cmp-path",
+            "hrsh7th/cmp-nvim-lsp",
+            'hrsh7th/cmp-cmdline',
+            'hrsh7th/cmp-nvim-lsp-signature-help',
+            {
+                "L3MON4D3/LuaSnip",
+                version = "v2.*",
+                -- install jsregexp (optional!).
+                build = "make install_jsregexp",
+                dependencies = { "rafamadriz/friendly-snippets" },
+            },
+            'saadparwaiz1/cmp_luasnip',
+            "onsails/lspkind.nvim", -- vs-code like pictograms
+        },
+        config = function()
+            local cmp = require("cmp")
+            local lspkind = require("lspkind")
+            local luasnip = require("luasnip")
 
-    -- Snippets
-    {"L3MON4D3/LuaSnip"},
-    {"rafamadriz/friendly-snippets"},
+            require("luasnip.loaders.from_vscode").lazy_load()
 
+            local select_opts = {behavior = cmp.SelectBehavior.Select}
+            local has_words_before = function()
+                unpack = unpack or table.unpack
+                local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+                return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
+            end
+
+            cmp.setup({
+                snippet = {
+                    expand = function(args)
+                        luasnip.lsp_expand(args.body)
+                    end,
+                },
+                sources = cmp.config.sources({
+                    { name = "nvim_lsp" },
+                    { name = 'nvim_lsp_signature_help' },
+                    { name = "luasnip", keyword_length = 2 },
+                    { name = "buffer", keyword_length = 3 },
+                    { name = "path" },
+                }),
+                preselect = cmp.PreselectMode.None,
+                completion = {
+                    completeopt = 'menu,menuone,preview',
+                },
+                window = {
+                    completion = {
+                        winhighlight = "Normal:Pmenu,FloatBorder:Pmenu,Search:None",
+                        col_offset = -3,
+                        side_padding = 0,
+                        border = 'rounded',
+                    },
+                    documentation = {
+                        border = 'rounded',
+                    }
+                },
+                formatting = {
+                    expandable_indicator = false,
+                    fields = { "kind", "abbr", "menu" },
+                    format = function(entry, vim_item)
+                        local kind = lspkind.cmp_format({ mode = "symbol_text", maxwidth = 50 })(entry, vim_item)
+                        local strings = vim.split(kind.kind, "%s", { trimempty = true })
+                        kind.kind = " " .. (strings[1] or "") .. " "
+                        kind.menu = "    (" .. (strings[2] or "") .. ")"
+
+                        return kind
+                    end,
+                },
+                mapping = cmp.mapping.preset.insert({
+                    ["<Up>"] = cmp.mapping.select_prev_item(select_opts),
+                    ["<Down>"] = cmp.mapping.select_next_item(select_opts),
+                    ["<C-d>"] = cmp.mapping.scroll_docs(-4),
+                    ["<C-f>"] = cmp.mapping.scroll_docs(4),
+                    ["<C-y"] = cmp.mapping.complete(),
+                    ["<C-e>"] = cmp.mapping.close(),
+
+                    ['<CR>'] = cmp.mapping.confirm({ select = true }),
+
+                    -- this suggested config doesn't work properly if use tab to
+                    -- cycle through the list...
+                    -- ['<CR>'] = cmp.mapping(function(fallback)
+                    --     if cmp.visible() then
+                    --         if luasnip.expandable() then
+                    --             luasnip.expand()
+                    --         else
+                    --             cmp.confirm({
+                    --                 select = true,
+                    --             })
+                    --         end
+                    --     else
+                    --         fallback()
+                    --     end
+                    -- end),
+
+                    ["<Tab>"] = cmp.mapping(function(fallback)
+                        if cmp.visible() then
+                            cmp.select_next_item(select_opts)
+                        elseif luasnip.locally_jumpable(1) then
+                            luasnip.jump(1)
+                        elseif has_words_before() then
+                            cmp.complete()
+                        else
+                            fallback()
+                        end
+                    end, { "i", "s" }),
+                    ["<S-Tab>"] = cmp.mapping(function(fallback)
+                        if cmp.visible() then
+                            cmp.select_prev_item(select_opts)
+                        elseif luasnip.locally_jumpable(-1) then
+                            luasnip.jump(-1)
+                        else
+                            fallback()
+                        end
+                    end, { "i", "s" }),
+                }),
+            })
+
+            vim.cmd([[
+              set completeopt=menuone,noinsert,noselect
+              highlight! default link CmpItemKind CmpItemMenuDefault
+            ]])
+        end,
+    },
+    -- {"saadparwaiz1/cmp_luasnip"},
     -- Debugging
     {
         "mfussenegger/nvim-dap",
@@ -1027,141 +1160,6 @@ require("lazy").setup({
 })
 
 ---
--- Luasnip (snippet engine)
----
--- See :help luasnip-loaders
-require("luasnip.loaders.from_vscode").lazy_load()
-
----
--- nvim-cmp (autocomplete)
----
-vim.opt.completeopt = {"menu", "menuone", "noselect"}
-
-local cmp = require("cmp")
-local luasnip = require("luasnip")
-
-local select_opts = {behavior = cmp.SelectBehavior.Select}
-
-local has_words_before = function()
-    unpack = unpack or table.unpack
-    local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-    return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
-end
-
--- TODO: fix rust snippet autocomplete bug, first element dissapears?
-
--- TODO: add completions from other visible buffers
--- https://github.com/hrsh7th/cmp-buffer#visible-buffers
--- See :help cmp-config
-cmp.setup({
-    snippet = {
-        expand = function(args)
-            luasnip.lsp_expand(args.body)
-        end
-    },
-    sources = {
-        {name = "path"},
-        {name = "nvim_lsp"},
-        {name = "buffer", keyword_length = 3},
-        {name = "luasnip", keyword_length = 2},
-    },
-    window = {
-        completion = cmp.config.window.bordered(),
-        documentation = cmp.config.window.bordered(),
-    },
-    formatting = {
-        fields = {"menu", "abbr", "kind"},
-        format = function(entry, item)
-            local menu_icon = {
-                nvim_lsp = "λ",
-                luasnip = "⋗",
-                buffer = "",
-                path = "󰆓",
-            }
-
-            item.menu = menu_icon[entry.source.name]
-            return item
-        end,
-    },
-    -- See :help cmp-mapping
-    mapping = {
-        ["<Up>"] = cmp.mapping.select_prev_item(select_opts),
-        ["<Down>"] = cmp.mapping.select_next_item(select_opts),
-
-        ["<C-p>"] = cmp.mapping.select_prev_item(select_opts),
-        ["<C-n>"] = cmp.mapping.select_next_item(select_opts),
-
-        ["<C-u>"] = cmp.mapping.scroll_docs(-4),
-        ["<C-d>"] = cmp.mapping.scroll_docs(4),
-
-        ["<C-e>"] = cmp.mapping.abort(),
-        ["<C-y>"] = cmp.mapping.confirm({select = true}),
-        ["<CR>"] = cmp.mapping.confirm({select = false}),
-
-        ["<Tab>"] = cmp.mapping(function(fallback)
-            if cmp.visible() then
-                cmp.select_next_item()
-                -- You could replace the expand_or_jumpable() calls with expand_or_locally_jumpable() 
-                -- they way you will only jump inside the snippet region
-            elseif luasnip.expand_or_jumpable() then
-                luasnip.expand_or_jump()
-            elseif has_words_before() then
-                cmp.complete()
-            else
-                fallback()
-            end
-        end, { "i", "s" }),
-
-        ["<S-Tab>"] = cmp.mapping(function(fallback)
-            if cmp.visible() then
-                cmp.select_prev_item()
-            elseif luasnip.jumpable(-1) then
-                luasnip.jump(-1)
-            else
-                fallback()
-            end
-        end, { "i", "s" }),
-    },
-})
-
-
----
--- Mason.nvim
----
--- See :help mason-settings
--- require("mason").setup({
---     ui = {border = "rounded"}
--- })
-
--- See :help mason-lspconfig-settings
--- require("mason-lspconfig").setup({
---     ensure_installed = {
---         "bashls",
---         "clangd",
---         "dockerls",
---         "lua_ls",
---         "pylsp",
---         "rust_analyzer",
---         "yamlls",
---     },
---     -- auto-install configured servers (with lspconfig)
---     automatic_installation = true, -- not the same as ensure_installed
--- })
---
----
--- LSP config
----
--- See :help lspconfig-global-defaults
-local lspconfig = require("lspconfig")
-local lsp_defaults = lspconfig.util.default_config
-
-lsp_defaults.capabilities = vim.tbl_deep_extend(
-    "force",
-    lsp_defaults.capabilities,
-    require("cmp_nvim_lsp").default_capabilities()
-)
-
----
 -- Diagnostic customization
 ---
 vim.g.diagnostics_active = true
@@ -1252,29 +1250,13 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end
 })
 
-
--- lspconfig.rust_analyzer.setup({
---     filetypes = {"rust"},
---     on_attach = function(client, bufnr)
---         vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
---     end,
---     settings = {
---         ['rust_analyzer'] = {
---             cargo = {
---                 allFeatures = true
---             },
---             -- checkOnSave = {
---             --   command = "clippy"
---             -- },
---         },
---     },
--- })
-
-
 ---
 -- LSP servers
 ---
 -- See :help mason-lspconfig-dynamic-server-setup
+
+local lspconfig = require("lspconfig")
+
 require("mason-lspconfig").setup_handlers({
     function(server)
         -- See :help lspconfig-setup
