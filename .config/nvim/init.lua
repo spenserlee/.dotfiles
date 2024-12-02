@@ -20,6 +20,26 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- folding:
+-- * zR: open all folds
+-- * zM: close all folds
+-- * za: toggle fold at cursor
+-- * zA: toggle fold and its children at curso
+-- * zj: move to next fold
+-- * zk: move to prev fold
+-- * see also: https://www.jackfranklin.co.uk/blog/code-folding-in-vim-neovim/
+
+-- TODO: use new LSP foldexpr if available? <https://redd.it/1h34lr4>
+-- vim.opt.foldexpr = "v:lua.vim.lsp.foldexpr()"
+
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+vim.opt.foldcolumn = "0"
+vim.opt.foldlevel = 99
+-- vim.opt.foldlevelstart = 1
+vim.opt.foldtext = ""
+vim.opt.foldnestmax = 4
+
  -- Make sure to set `mapleader` before lazy so your mappings are correct
 vim.g.mapleader = " "
 
@@ -1028,6 +1048,7 @@ local has_words_before = function()
     return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
 end
 
+-- TODO: fix rust snippet autocomplete bug, first element dissapears?
 
 -- TODO: add completions from other visible buffers
 -- https://github.com/hrsh7th/cmp-buffer#visible-buffers
@@ -1220,7 +1241,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         -- bufmap("n", "gr", "<cmd>lua vim.lsp.buf.references()<cr>")
         bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>")
         bufmap("n", "gs", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
-        bufmap("n", "<F11>", "<cmd>lua vim.lsp.buf.rename()<cr>")
+        bufmap("n", "<F9>", "<cmd>lua vim.lsp.buf.rename()<cr>")
         bufmap({"n", "x"}, "<F12>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
         bufmap("n", "gl", "<cmd>lua vim.diagnostic.open_float()<cr>")
         bufmap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<cr>")
