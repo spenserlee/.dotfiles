@@ -19,6 +19,24 @@ New machine:
         xargs -I{} mv {} .config-backup/{}
     dotfig checkout
     dotfig config --local status.showUntrackedFiles no
+    dotfig fetch origin '*:*'  # fetch remote branches
+     
+    # due to bare repo, may require explicit git config for new branches
+    $ cat .dotfiles/config
+    [core]
+            repositoryformatversion = 0
+            filemode = true
+            bare = true
+    [remote "origin"]
+            url = git@github.com:spenserlee/.dotfiles.git
+    [status]
+            showUntrackedFiles = no
+    [branch "main"]
+            remote = origin
+            merge = refs/heads/main
+    [branch "work"]
+            remote = origin
+            merge = refs/heads/work
 
 ---
 
@@ -26,6 +44,7 @@ New machine:
 
 * neovim plugins tbd
     * LSP / DAP
+        * DAP - don't forget to install `gdb`
     * treesitter
     * whichkey
     * quickfix
