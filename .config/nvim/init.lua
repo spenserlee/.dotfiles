@@ -235,6 +235,7 @@ require("lazy").setup({
         "tpope/vim-fugitive",
     },
     {
+        "sindrets/diffview.nvim",
     },
     {
         -- Git gutter display
