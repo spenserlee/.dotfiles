@@ -1,13 +1,6 @@
 -- Keep nvim/vim independent configs in vimscript for basic functionality
 vim.cmd("source ~/.config/nvim/viml/init.vim")
 
--- TODO:
---  * fix rust debugging executable, tests work, but nothing else.
---  * update neovim to latest 10.2
---  * switch to rustaceanvim
---  * verify debugging still works.
---
-
 -- @nocheckin
 -- good references
 -- https://github.com/Alexis12119/nvim-config/blob/main/lua/core/autocommands.lua
@@ -454,21 +447,6 @@ require("lazy").setup({
     --     end
     -- }, 
     {
-        "neovim/nvim-lspconfig",
-        dependencies = {
-            {
-                "folke/neodev.nvim",  -- LSP for nvim config itself
-                config = function()
-                    require("neodev").setup()
-                end
-            },
-        },
-        inlay_hints = {
-            enable = true,
-        },
-    },
-    -- TODO: get nvim-dap working with rust.. it's a huge pain..
-    {
         "williamboman/mason.nvim",
         build = ":MasonUpdate",
         cmd = {
@@ -491,7 +469,7 @@ require("lazy").setup({
             -- import mason-lspconfig
             local mason_lspconfig = require("mason-lspconfig")
             local mason_tool_installer = require("mason-tool-installer")
-            local mason_dap = require("mason-nvim-dap")
+            -- local mason_dap = require("mason-nvim-dap")
 
             -- enable mason and configure icons
             mason.setup({
@@ -512,7 +490,7 @@ require("lazy").setup({
                     "dockerls",
                     "lua_ls",
                     "pylsp",
-                    "rust_analyzer",
+                    -- "rust_analyzer",
                     "yamlls",
                 },
                 -- auto-install configured servers (with lspconfig)
@@ -565,16 +543,88 @@ require("lazy").setup({
         end,
     },
     {
-        "rust-lang/rust.vim",
-        ft = "rust",
+        -- https://github.com/mrcjkb/rustaceanvim/discussions/122
+        'mrcjkb/rustaceanvim',
+        version = '^5', -- Recommended
+        ft = { 'rust' },
+        lazy = false,
         init = function()
-            -- vim.g.rustfmt_autosave = 1
-        end
-    },
-    -- {"simrat39/rust-tools.nvim"},
+            vim.g.rustaceanvim = {
+                -- Plugin configuration
+                tools = {
+                    autoSetHints = true,
+                    -- the neovim 0.10 native inlay hints kind of suck...
+                    -- https://github.com/neovim/neovim/issues/28261
+                    inlay_hints = {
+                        show_parameter_hints = true,
+                        parameter_hints_prefix = "<- ",
+                        other_hints_prefix = "=> ",
+                    }
+                },
+                -- LSP configuration
+                server = {
+                    on_attach = function(client, bufnr)
+                        -- mappings(client, bufnr)
+                        -- require("illuminate").on_attach(client)
+
+                        local bufopts = {
+                            noremap = true,
+                            silent = true,
+                            buffer = bufnr
+                        }
+                        vim.keymap.set('n', '<leader>A', "<Cmd>RustLsp codeAction<CR>", bufopts)
+                        vim.keymap.set('n', '<leader>a', "<Cmd>RustLsp hover actions<CR>", bufopts)
+                        vim.keymap.set('n', 'K', "<Cmd>RustLsp hover actions<CR>", bufopts)
+                    end,
+                    settings = {
+                        -- rust-analyzer language server configuration
+                        ['rust-analyzer'] = {
+                            -- assist = {
+                            --     importEnforceGranularity = true,
+                            --     importPrefix = "create"
+                            -- },
+                            cargo = {
+                                allFeatures = true,
+                                loadOutDirsFromCheck = true,
+                                runBuildScripts = true,
+                            },
+                            checkOnSave = {
+                                -- default: `cargo check`
+                                command = "clippy",
+                                allFeatures = true,
+                                extraArgs = { "--no-deps" },
+                            },
+                            -- inlayHints = {
+                            --     lifetimeElisionHints = {
+                            --         enable = true,
+                            --         useParameterNames = true
+                            --     }
+                            -- }
+                        }
+                    }
+                },
+                -- DAP configuration
+                dap = {},
+            }
+         end
+     },
     {
-        "Ciel-MC/rust-tools.nvim",
-        ft = "rust",
+        "neovim/nvim-lspconfig",
+        dependencies = {
+            {
+                "folke/neodev.nvim",  -- LSP for nvim config itself
+                config = function()
+                    require("neodev").setup()
+                end
+            },
+        },
+        -- config = function()
+        --     require("lspconfig").setup({
+        --         servers = {
+        --             rust_analyzer = {},
+        --         },
+        --     })
+        -- end,
     },
     {
         -- nice plugin which solves the terrible native lsp inlay hint behaviour.
@@ -592,69 +642,6 @@ require("lazy").setup({
         -- useful command to toggle inlay hint native display
         -- require("lsp-endhints").toggle()
     },
-
-
-    -- rustaceanvim supposedly replaces rust-tools and claims "no setup", but I
-    -- cannot get it to work...
-    -- {
-    --     'mrcjkb/rustaceanvim',
-    --     version = '^4', -- Recommended
-    --     ft = { 'rust' },
-    --     lazy = false,
-    --     init = function()
-    --         vim.g.rustaceanvim = {
-    --             -- Plugin configuration
-    --             tools = {
-    --                 autoSetHints = true,
-    --                 inlay_hints = {
-    --                     show_parameter_hints = true,
-    --                     parameter_hints_prefix = "<- ",
-    --                     other_hints_prefix = "=> "
-    --                 }
-    --             },
-    --             -- LSP configuration
-    --             server = {
-    --                 on_attach = function(client, bufnr)
-    --                     mappings(client, bufnr)
-    --                     require("illuminate").on_attach(client)
-    --
-    --                     local bufopts = {
-    --                         noremap = true,
-    --                         silent = true,
-    --                         buffer = bufnr
-    --                     }
-    --                     -- vim.keymap.set('n', '<leader><leader>rr', "<Cmd>RustLsp runnables<CR>", bufopts)
-    --                     vim.keymap.set('n', 'K', "<Cmd>RustLsp hover actions<CR>", bufopts)
-    --                 end,
-    --                 settings = {
-    --                     -- rust-analyzer language server configuration
-    --                     ['rust-analyzer'] = {
-    --                         assist = {
-    --                             importEnforceGranularity = true,
-    --                             importPrefix = "create"
-    --                         },
-    --                         cargo = { allFeatures = true },
-    --                         checkOnSave = {
-    --                             -- default: `cargo check`
-    --                             command = "clippy",
-    --                             allFeatures = true
-    --                         },
-    --                         inlayHints = {
-    --                             lifetimeElisionHints = {
-    --                                 enable = true,
-    --                                 useParameterNames = true
-    --                             }
-    --                         }
-    --                     }
-    --                 }
-    --             },
-    --             -- DAP configuration
-    --             dap = {
-    --             },
-    --         }
-    --     end
-    -- },
-
     {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
@@ -1188,7 +1175,7 @@ vim.diagnostic.config({
     severity_sort = true,
     float = {
         border = "rounded",
-        source = "always",
+        -- source = "always",
     },
 })
 
@@ -1272,61 +1259,8 @@ require("mason-lspconfig").setup_handlers({
         -- See :help lspconfig-setup
         lspconfig[server].setup({})
     end,
-    ["rust_analyzer"] = function ()
-        local rt = require("rust-tools")
-        -- local mason_registry = require("mason-registry")
-        --
-        -- local codelldb = mason_registry.get_package("codelldb")
-        -- local extension_path = codelldb:get_install_path() .. "/extension/"
-        -- local codelldb_path = extension_path .. "adapter/codelldb"
-        -- local liblldb_path = extension_path .. "lldb/lib/liblldb.dylib"
-
-        local home_path = os.getenv("HOME") .. "/"
-        local mason_path = home_path .. ".local/share/nvim/mason/packages/"
-        local codelldb_path = mason_path .. "codelldb/extension/adapter/codelldb"
-        local liblldb_path = mason_path .. "codelldb/extension/lldb/lib/liblldb.so"
-
-        -- print("codelldb_path = " .. codelldb_path)
-        -- print("liblldb_path = " .. liblldb_path)
-
-        rt.setup({
-            dap = {
-                adapter = require("rust-tools.dap").get_codelldb_adapter(codelldb_path, liblldb_path),
-            },
-            server = {
-                capabilities = require("cmp_nvim_lsp").default_capabilities(),
-                on_attach = function(_, bufnr)
-                    vim.keymap.set("n", "<leader>a", rt.hover_actions.hover_actions, {buffer = bufnr })
-                    vim.keymap.set("n", "<leader>A", rt.code_action_group.code_action_group, {buffer = bufnr })
-                end
-            },
-            tools = {
-                inlay_hints = {
-                    auto = false,
-                },
-                hover_actions = {
-                    auto_focus = true,
-                },
-            },
-            -- why the hell doesn't clippy work... ffs man the documentation is
-            -- a clusterfuck. 20 pages of issues no full solutions...
-            cargo = {
-                allFeatures = true,
-            },
-            checkOnSave = {
-                enable = true,
-                command = "clippy",
-                extraArgs = {
-                    "--",
-                    "--no-deps",
-                    "-Dclippy::correctness",
-                    "-Dclippy::complexity",
-                    "-Wclippy::perf",
-                    "-Wclippy::pedantic",
-                },
-            }
-        })
-    end,
+    -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
+    ["rust_analyzer"] = function () end,
     ["lua_ls"] = function ()
         lspconfig.lua_ls.setup {
             settings = {
