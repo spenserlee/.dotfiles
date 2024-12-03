@@ -983,8 +983,10 @@ require("lazy").setup({
             -- Insert a conditional breakpoint. e.g.:
             -- :DapConditional "foo > 10"
             vim.api.nvim_create_user_command('DapConditional', function(args)
-                dap.toggle_breakpoint(args.args)
-            end, {})
+                -- Remove surrounding quotes if present
+                local condition = args.args:match('^"(.*)"$') or args.args
+                require('dap').toggle_breakpoint(condition)
+            end, { nargs = 1 })
 
             -- Fixup DAP UI after window resize.
             vim.api.nvim_create_user_command('DapUiReset', function()
