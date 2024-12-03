@@ -985,7 +985,7 @@ require("lazy").setup({
             vim.api.nvim_create_user_command('DapConditional', function(args)
                 -- Remove surrounding quotes if present
                 local condition = args.args:match('^"(.*)"$') or args.args
-                require('dap').toggle_breakpoint(condition)
+                dap.toggle_breakpoint(condition)
             end, { nargs = 1 })
 
             -- Fixup DAP UI after window resize.
