@@ -1,6 +1,6 @@
 " VIM settings which should just be default
 " Using neovim, but keeping the basics in vim script for easy copying to other
-" devices
+" devices for a more sane vanilla vim experience.
 
 " --- general
 filetype plugin indent on
@@ -59,9 +59,15 @@ autocmd! BufEnter,FocusGained,InsertLeave * setlocal relativenumber
 au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 
 " --- key mappings
+ 
+" enter: change word under cursor with one stroke
 nnoremap <CR> ciw
 
+" ctrl+s: classic Windows save keybind
 noremap <C-s> :write<CR>
+
+" ctrl+space: equalize splits
+noremap <C-Space> <C-w>=
 
 " quickfix managment
 function! ToggleQuickfix()
