@@ -91,7 +91,6 @@ local function generate_and_execute_sed_command(args)
     end
 end
 
--- Create a Neovim command to run the function
 vim.api.nvim_create_user_command(
     "SedDump",
     generate_and_execute_sed_command,
@@ -918,12 +917,11 @@ require("lazy").setup({
             "williamboman/mason.nvim",
         },
         config = function()
-            local dap = require "dap"
-            local ui = require "dapui"
+            local dap = require("dap")
+            local ui = require("dapui")
 
             -- command to reset DAP UI panes
-            -- :lua require('dapui').toggle({reset=true})
-            require("dapui").setup({
+            ui.setup({
                 layouts = { {
                     elements = { {
                         id = "scopes",
@@ -959,7 +957,7 @@ require("lazy").setup({
 
             -- Eval var under cursor
             vim.keymap.set("n", "<space>;", function()
-                require("dapui").eval(nil, { enter = true })
+                ui.eval(nil, { enter = true })
             end)
 
             vim.keymap.set("n", "<F1>", dap.continue)
@@ -981,6 +979,23 @@ require("lazy").setup({
             dap.listeners.before.launch.dapui_config = function() ui.open() end
             dap.listeners.before.event_terminated.dapui_config = function() ui.close() end
             dap.listeners.before.event_exited.dapui_config = function() ui.close() end
+
+            -- Insert a conditional breakpoint. e.g.:
+            -- :DapConditional "foo > 10"
+            vim.api.nvim_create_user_command('DapConditional', function(args)
+                dap.toggle_breakpoint(args.args)
+            end, {})
+
+            -- Fixup DAP UI after window resize.
+            vim.api.nvim_create_user_command('DapUiReset', function()
+                ui.toggle({reset = true})
+                ui.toggle({reset = true})
+            end, {})
+
+            -- Close DAP UI splits when debugging ends (and it doesn't close automatically like it should...)
+            vim.api.nvim_create_user_command('DapUiClose', function()
+                ui.close()
+            end, {})
 
             local home_path = os.getenv("HOME") .. "/"
             local bin_locations = home_path .. ".local/share/nvim/mason/bin"
