@@ -2,13 +2,15 @@
 
 Configuration files for my development environment using neovim and tmux.
 
-![Preview with nvim and terminal splits](./.config/dotshowcase/preview_01.png?raw=true "Preview")
+![nvim and terminal](./.config/dotshowcase/preview_01.png?raw=true "Preview nvim and terminal splits")
+![nvim DAP debugging](./.config/dotshowcase/preview_02.png?raw=true "Preview nvim DAP")
+![nvim LSP showcase](./.config/dotshowcase/preview_03.png?raw=true "Preview nvim LSP macro expansion capabilities")
+![nvim FZF file search](./.config/dotshowcase/preview_04.png?raw=true "Preview nvim fuzzy git file search")
+![nvim ZEN mode](./.config/dotshowcase/preview_06.png?raw=true "Preview nvim zen mode")
 
 ---
 
 Currently managed in a [bare git repo](https://www.atlassian.com/git/tutorials/dotfiles).
-
----
 
 TLDR:
 
@@ -16,8 +18,11 @@ TLDR:
     alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
     dotfig config --local status.showUntrackedFiles no
 
-New machine:
+---
 
+Setting up a new machine:
+
+    # First install required applications!
     alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
     git clone --bare git@github.com:spenserlee/.dotfiles.git $HOME/.dotfiles
     mkdir -p .config-backup && \
@@ -49,13 +54,12 @@ Due to bare repo, may require explicit git config for new branches:
 
 ## TODO:
 
-* installation script for the required applications.
-* theme picker for night/day colorschemes
+* Installation script for the required applications.
+* Theme picker for night/day color schemes.
+* Verify necessity of luarocks installation.
 
 
-## Application Setup
-
-Here's the basics (substitute updated version numbers where necessary):
+## Required Applications Setup
 
 * git
 ```
@@ -82,9 +86,8 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ```
 * ripgrep
 ```
-curl -LO https://github.com/BurntSushi/ripgrep/releases/download/13.0.0/ripgrep_13.0.0_amd64.deb
-sha256sum ripgrep_13.0.0_amd64.deb 
-sudo dpkg -i ripgrep_13.0.0_amd64.deb 
+curl -LO https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep_14.1.1-1_amd64.deb
+sudo dpkg -i ripgrep_14.1.1-1_amd64.deb
 ```
 * fd
 ```
@@ -96,7 +99,7 @@ ln -s $(which fdfind) ~/.local/bin/fd
 sudo apt remove --purge neovim
 git clone https://github.com/neovim/neovim
 cd neovim/
-git checkout stable
+git checkout v0.10.2
 sudo apt-get install ninja-build gettext cmake unzip curl
 make CMAKE_BUILD_TYPE=RelWithDebInfo
 cd build && cpack -G DEB && sudo dpkg -i --force-overwrite nvim-linux64.deb
