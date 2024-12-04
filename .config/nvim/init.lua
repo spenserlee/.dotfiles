@@ -998,7 +998,7 @@ require("lazy").setup({
                     type = "cppdbg",
                     request = "launch",
                     program = function()
-                        return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+                        return vim.fn.input('Path to C/C++ executable: ', vim.fn.getcwd() .. '/', 'file')
                     end,
                     cwd = '${workspaceFolder}',
                     stopAtEntry = true,
@@ -1025,7 +1025,7 @@ require("lazy").setup({
                     type = "codelldb",
                     request = "launch",
                     program = function()
-                        return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug", "file")
+                        return vim.fn.input("Path to Rust executable: ", vim.fn.getcwd() .. "/target/debug", "file")
                     end,
                     cwd = "${workspaceFolder}",
                     stopOnEntry = false,
