@@ -42,6 +42,8 @@ New machine:
 
 ## TODO / NOTES:
 
+* add some pics
+
 * neovim plugins tbd
     * LSP / DAP
         * DAP - don't forget to install `gdb`

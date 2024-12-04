@@ -1,12 +1,7 @@
--- Keep nvim/vim independent configs in vimscript for basic functionality
+-- Load regular VIM-compatible settings file.
 vim.cmd("source ~/.config/nvim/viml/init.vim")
 
--- @nocheckin
--- good references
--- https://github.com/Alexis12119/nvim-config/blob/main/lua/core/autocommands.lua
--- https://github.com/rebelot/dotfiles/tree/master
-
--- Install Lazy plugin manager
+-- Install Lazy plugin manager.
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   vim.fn.system({
@@ -20,30 +15,31 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
--- folding:
+ -- Make sure to set `mapleader` before Lazy setup so your mappings are correct.
+vim.g.mapleader = " "
+
+-- Set up code folding.
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+vim.opt.foldcolumn = "0"
+vim.opt.foldlevel = 99
+vim.opt.foldtext = ""
+vim.opt.foldnestmax = 4
+-- vim.opt.foldlevelstart = 1
+
+-- TODO: use new LSP foldexpr if available? <https://redd.it/1h34lr4>
+-- vim.opt.foldexpr = "v:lua.vim.lsp.foldexpr()"
+
+-- Folding keybinds:
 -- * zR: open all folds
 -- * zM: close all folds
 -- * za: toggle fold at cursor
 -- * zA: toggle fold and its children at curso
 -- * zj: move to next fold
 -- * zk: move to prev fold
--- * see also: https://www.jackfranklin.co.uk/blog/code-folding-in-vim-neovim/
+-- * see also: <https://www.jackfranklin.co.uk/blog/code-folding-in-vim-neovim/>
 
--- TODO: use new LSP foldexpr if available? <https://redd.it/1h34lr4>
--- vim.opt.foldexpr = "v:lua.vim.lsp.foldexpr()"
-
-vim.opt.foldmethod = "expr"
-vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-vim.opt.foldcolumn = "0"
-vim.opt.foldlevel = 99
--- vim.opt.foldlevelstart = 1
-vim.opt.foldtext = ""
-vim.opt.foldnestmax = 4
-
- -- Make sure to set `mapleader` before lazy so your mappings are correct
-vim.g.mapleader = " "
-
--- highlight yanked regions
+-- Show highlight for yanked regions
 vim.cmd[[
     augroup highlight_yank
     autocmd!
@@ -53,32 +49,24 @@ vim.cmd[[
     augroup END
 ]]
 
--- Function to generate and execute a sed command based on visual selection
 local function generate_and_execute_sed_command(args)
     -- Get the current visual selection range
     local start_line = vim.fn.line("'<")
     local end_line = vim.fn.line("'>")
 
-    -- Get the full path to the current buffer file, properly quoted
     local file_path = vim.fn.shellescape(vim.fn.expand("%:p"))
     if file_path == "" then
         print("Buffer does not have a file path.")
         return
     end
 
-    -- Construct the sed command
     local sed_command = string.format("sed -n '%d,%dp' %s", start_line, end_line, file_path)
-
-    -- print("Running command: " .. sed_command)
     print(sed_command)
 
-    -- Execute the command and capture the output
     local output = vim.fn.system(sed_command)
-    -- local output = raw_output:gsub("\r\n", "\n"):gsub("\r", "\n")
 
     -- Check if "buffer" argument is passed
     if args.args == "buffer" then
-        -- Print the output in a new buffer
         vim.cmd("new") -- Open a new split
         vim.cmd("setlocal buftype=nofile") -- Make the buffer a scratch buffer
         vim.cmd("setlocal bufhidden=wipe") -- Wipe the buffer when closed
@@ -101,11 +89,10 @@ vim.api.nvim_create_user_command(
     }
 )
 
-
 -- Plugins
 require("lazy").setup({
     {
-        -- colorscheme
+        -- Load colorscheme first.
         "ellisonleao/gruvbox.nvim",
         lazy = false,
         priority = 1000,
@@ -147,6 +134,7 @@ require("lazy").setup({
     --     end
     -- },
     {
+        -- Status bar customization.
         "nvim-lualine/lualine.nvim",
         dependencies = { "nvim-tree/nvim-web-devicons" },
         -- TODO: would be nice if the branch component also picked up on tags
@@ -182,7 +170,8 @@ require("lazy").setup({
         end
     },
     {
-        -- TMUX pane / VIM split
+        -- For unifying TMUX pane / VIM split navigation.
+        -- TODO: try replacing with smart-splits.nvim
         "alexghergh/nvim-tmux-navigation",
         lazy = false,
         config = function()
@@ -198,8 +187,14 @@ require("lazy").setup({
             vim.keymap.set("n", "<M-Space>", nvim_tmux_nav.NvimTmuxNavigateNext)
         end,
     },
-    { "tpope/vim-obsession" },
     {
+        -- For saving editor state (windows/tabs/layout) to a session file.
+        -- Save with command: :Obsession <path-to-save-to>
+        -- Load with:         nvim -S <path-to-session-file>
+        "tpope/vim-obsession"
+    },
+    {
+        -- The greatest search plugin ever!!!
         "ibhagwan/fzf-lua",
         keys = {
             {"<C-p>", "<cmd>FzfLua git_files<cr>", desc = "FZF git files"},
@@ -209,14 +204,13 @@ require("lazy").setup({
             {"<leader>L", "<cmd>FzfLua resume<cr>", desc = "FZF resume last search"},
             {"<leader>?", "<cmd>FzfLua grep<cr>", desc = "FZF search"},
             {"<leader><space>", "<cmd>FzfLua buffers<cr>", desc = "FZF buffers"},
-            -- {"<leader>b", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
             {"<leader>l", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
             {"<leader>c", "<cmd>FzfLua commands<cr>", desc = "FZF commands"},
             {"<leader>s", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "LSP Document Symbols"},
         },
     },
     {
-        -- File explorer as regular buffer
+        -- File explorer as regular buffer.
         "stevearc/oil.nvim",
         dependencies = { "nvim-tree/nvim-web-devicons" },
         opts = {
@@ -240,17 +234,33 @@ require("lazy").setup({
         end
     },
     {
-        -- Git tools
+        -- Add git commands directly in the editor.
+        --
+        -- Some favourite commands (there's so much more...):
+        --     :Git (:G for short)  - open git summary/status window
+        --     :G blame             - open in-line blame of current buffer
+        --     :G diff              - open split with `git diff` output
+        --     :0G diff             - open full buffer to `git diff` output
+        -- 
         -- TODO: find a solution so git plugins can be utilized with bare repo
         -- workaround by invoking nvim with explicit env var:
         --   GIT_DIR=$HOME/.dotfiles GIT_WORK_TREE=$HOME nvim .config/nvim/init.lua
         "tpope/vim-fugitive",
     },
     {
+        -- Incredibly powerful single tabpage interface for easily cyclingthrough
+        -- through diffs for all modified files for any git rev.
+        --
+        --      :DiffviewOpen HEAD~1            - current unstaged changes
+        --      :DiffviewOpen d695eca^!         - view specific revision changes
+        --      :DiffviewFileHistory            - history for current branch
+        --      :DiffviewFileHistory %          - history for current file
+        --      :DiffviewOpen <rev_a>...<rev_b> - between two revisions
+        --      :h diffview-merge-tool          - powerful merge tool too (haven't tried it)
         "sindrets/diffview.nvim",
     },
     {
-        -- Git gutter display
+        -- Git gutter display.
         "lewis6991/gitsigns.nvim",
         config = function()
             require("gitsigns").setup({
@@ -307,7 +317,9 @@ require("lazy").setup({
         -- end,
     },
     {
-        -- Multiple search highlights is so great for log analysis
+        -- Multiple search highlights - great for log analysis.
+        --      f<enter>   - add higlight for word/selection
+        --      f<delete>  - remove highlighted word/selection
         "azabiong/vim-highlighter",
         lazy = false,
         keys = {
@@ -319,22 +331,24 @@ require("lazy").setup({
             {"<leader>{", "<cmd>Hi<<cr>", desc = "Highlighter prev any"},
         },
         config = function()
+            -- TODO: this isn't working right...
             -- set global highlights by default
             vim.cmd("Hi ==")
         end
     },
     {
+        -- CTRL + / to toggle comments in normal/visual mode.
         "numToStr/Comment.nvim",
         config = function()
             require("Comment").setup()
             local opts = { remap = true, silent = true }
-            -- CTRL + / to toggle comments in normal/visual mode
             vim.keymap.set("n", "<C-_>", "gcc", opts)
             vim.keymap.set("v", "<C-_>", "gc", opts)
         end
     },
     {
-        -- displays filename on each split in floating in top right
+        -- Displays filename on each split in floating in top right.
+        -- TODO: disable this for DAP panes?
         'b0o/incline.nvim',
         config = function()
             require('incline').setup({
@@ -347,8 +361,10 @@ require("lazy").setup({
         event = 'VeryLazy',
     },
     {
+        -- Declutter visuals and just focus on one buffer.
         "folke/zen-mode.nvim",
         opts = {
+            -- TODO: broken in some edge cases like diffview commit log popup.
             zindex = 42,
             window = {
                 width = 0.6
@@ -376,16 +392,25 @@ require("lazy").setup({
             on_close = function(_)
                 require('incline').enable()
                 vim.fn.system([[tmux set status on]])
-                -- vim.fn.system(
-                -- [[tmux list-panes -F '\#F' | grep -q Z && tmux resize-pane -Z]])
             end
         },
         keys = {
             {"<leader>z", "<cmd>ZenMode<cr>", desc = "ZenMode"},
-            -- {"<leader>z", "<cmd>lua require('incline').toggle()<cr><cmd>ZenMode<cr>", desc = "ZenMode"},
         }
     },
     {
+        -- Modify surrounding delimiter pairs more easily. Reference (because I always forget...):
+        --
+        --  Before Text                 Command         After text
+        --  ------------------------------------------------------------------
+        --  surr*ound_words             ysiw)           (surround_words)
+        --  *make strings               ys$"            "make strings"
+        --  [delete ar*ound me!]        ds]             delete around me!
+        --  remove <b>HTML t*ags</b>    dst             remove HTML tags
+        --  'change quot*es'            cs'"            "change quotes"
+        --  <b>or tag* types</b>        csth1<CR>       <h1>or tag types</h1>
+        --  delete(functi*on calls)     dsf             function calls
+        --
         "kylechui/nvim-surround",
         version = "*", -- Use for stability; omit to use `main` branch for the latest features
         event = "VeryLazy",
@@ -394,11 +419,14 @@ require("lazy").setup({
         end
     },
     {
+        -- Add closing delimiter automatically.
         "windwp/nvim-autopairs",
         event = "InsertEnter",
         opts = {} -- this is equalent to setup({}) function
     },
     {
+        -- Move line/visual selection of text up/down with ctrl+shift+<up/down>.
+        -- Works in normal, visual, and insert modes, with indent-awareness.
         "fedepujol/move.nvim",
         keys = {
             { "<C-Down>", ":MoveLine(1)<CR>", mode = { "n" } },
@@ -413,18 +441,19 @@ require("lazy").setup({
         end
     },
     {
-        -- Navigate by eye
+        -- Navigate by eye.
+        -- 's' becomes search forward
+        -- 'S' becomes search backwards
         "ggandor/leap.nvim",
         config = function()
-            require("leap").add_default_mappings()
-
-            -- don't overwrite the default delete keymapping, I only use sS
-            vim.keymap.del({'x', 'o'}, 'x')
-            vim.keymap.del({'x', 'o'}, 'X')
-        end
+            vim.keymap.set({'n', 'x', 'o'}, 's',  '<Plug>(leap-forward)')
+            vim.keymap.set({'n', 'x', 'o'}, 'S',  '<Plug>(leap-backward)')
+            vim.keymap.set({'n', 'x', 'o'}, 'gs', '<Plug>(leap-from-window)')
+        end,
     },
     {
-        -- highlight word under cursor
+        -- Highlight word under cursor.
+        -- TODO: revisit RRethy/vim-illuminate as an alternative later
         'tzachar/local-highlight.nvim',
         config = function()
             require('local-highlight').setup({
@@ -437,35 +466,8 @@ require("lazy").setup({
             vim.api.nvim_set_option("updatetime", 400)
         end
     },
-    -- TODO: this one messes with keymaps somehow... and annoyingly highlight
-    -- within blocks
-    -- {
-    --     "RRethy/vim-illuminate",
-    --     config = function()
-    --         require("illuminate").configure{}
-    --         -- change the highlight style
-    --         vim.api.nvim_set_hl(0, "IlluminatedWordText", { link = "Visual" })
-    --         vim.api.nvim_set_hl(0, "IlluminatedWordRead", { link = "Visual" })
-    --         vim.api.nvim_set_hl(0, "IlluminatedWordWrite", { link = "Visual" })
-    --
-    --         vim.cmd [[
-    --             hi def IlluminatedWordText guifg=none guibg=none gui=underline
-    --             hi def IlluminatedWordRead guifg=none guibg=none gui=underline
-    --             hi def IlluminatedWordWrite guifg=none guibg=none gui=underline
-    --             ]]
-    --
-    --         --- auto update the highlight style on colorscheme change
-    --         -- vim.api.nvim_create_autocmd({ "ColorScheme" }, {
-    --         --     pattern = { "*" },
-    --         --     callback = function(ev)
-    --         --         vim.api.nvim_set_hl(0, "IlluminatedWordText", { link = "Visual" })
-    --         --         vim.api.nvim_set_hl(0, "IlluminatedWordRead", { link = "Visual" })
-    --         --         vim.api.nvim_set_hl(0, "IlluminatedWordWrite", { link = "Visual" })
-    --         --     end
-    --         -- })
-    --     end
-    -- }, 
     {
+        -- Package manager for Neovim, installs LSP/DAP/Lint servers automatically.
         "williamboman/mason.nvim",
         build = ":MasonUpdate",
         cmd = {
@@ -518,50 +520,24 @@ require("lazy").setup({
 
             mason_tool_installer.setup({
                 ensure_installed = {
-
                     -- Formatter and Linters
                     "cmakelang", -- CMake
                     "markdownlint", --Markdown
 
                     -- Linters
                     -- "pylint", -- Python
-                    -- "eslint_d", -- Javascript and more
-                    -- "cmakelint", -- CMake
                     -- "luacheck", -- Lua
-                    -- "jsonlint", -- Json
-                    -- "golangci-lint", -- Golang
-                    -- "checkstyle", -- Overall
-                    -- "yamllint", -- Yaml
-                    -- "stylelint", -- CSS/SCSS etc
-
-                    -- Formatters
-                    -- "stylua", -- lua
-                    -- "prettier",
-                    -- "isort", -- python
-                    -- "black", -- python
-                    -- "htmlbeautifier", -- HTML
-                    -- "beautysh", --Shell
-                    -- "latexindent", --Latex
-                    -- "csharpier", --C#
-                    -- "clang-format", --C/C++
-                    -- "pretty-php", --PHP
 
                     -- Debugger adapters
                     "bash-debug-adapter", -- Shell
                     "codelldb", -- C/C++/Rust
                     -- "debugpy", -- Python
-                    -- "java-debug-adapter", -- Java
-                    -- "js-debug-adapter", -- Javascript
-                    -- "kotlin-debug-adapter", -- Kotlin
-                    -- "netcoredbg", -- C#
-                    -- "php-debug-adapter", -- PHP
                 },
             })
-
-            local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
         end,
     },
     {
+        -- Configures rust-analyzer builtin LSP client + integrates with other Rust tools.
         -- https://github.com/mrcjkb/rustaceanvim/discussions/122
         'mrcjkb/rustaceanvim',
         version = '^5', -- Recommended
@@ -625,7 +601,6 @@ require("lazy").setup({
                         }
                     }
                 },
-                -- DAP configuration
                 dap = {},
             }
             -- workaround fix for error: "LSP: rust_analyzer: -32802: server cancelled the request"
@@ -642,6 +617,7 @@ require("lazy").setup({
          end
      },
     {
+        -- Some basic default client configuration setings for NVIM LSP.
         "neovim/nvim-lspconfig",
         dependencies = {
             {
@@ -651,6 +627,8 @@ require("lazy").setup({
                 end
             },
         },
+        -- TODO: keep it simple and put the config here. Probably need to ensure this is
+        -- available before mason-lspconfig setup can run...
         -- config = function()
         --     require("lspconfig").setup({
         --         servers = {
@@ -660,7 +638,7 @@ require("lazy").setup({
         -- end,
     },
     {
-        -- nice plugin which solves the terrible native lsp inlay hint behaviour.
+        -- Solves the terrible native lsp inlay hint behaviour.
         "chrisgrieser/nvim-lsp-endhints",
         event = "LspAttach",
         opts = {}, -- required, even if empty
@@ -676,6 +654,8 @@ require("lazy").setup({
         -- require("lsp-endhints").toggle()
     },
     {
+        -- Provide much better syntax highlighting + dynamic code presentations
+        -- based on cursor position and scope.
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
         event = { "BufReadPre" },
@@ -739,6 +719,7 @@ require("lazy").setup({
         end,
     },
     {
+        -- Visual plugin to better display indentation level and current scope.
         "lukas-reineke/indent-blankline.nvim",
         main= "ibl",
         event = "BufReadPost",
@@ -755,29 +736,7 @@ require("lazy").setup({
             },
         },
     },
-    -- {
-    --     "lukas-reineke/indent-blankline.nvim",
-    --     event = "BufReadPost",
-    --     config = function()
-    --         require("indent_blankline").setup {
-    --             buftype_exclude = {"terminal", "prompt", "nofile"},
-    --             filetype_exclude = {
-    --                 'help', 'dashboard', 'Trouble', 'dap.*', 'NvimTree',
-    --                 "packer"
-    --             },
-    --             show_current_context = true,
-    --             show_current_context_start = false,
-    --             show_trailing_blankline_indent = false,
-    --             -- use_treesitter = true,
-    --             -- use_treesitter_scope = true
-    --             -- context_patterns = {
-    --             --     'class', 'func', 'method', '.*_statement', 'table'
-    --             -- }
-    --         }
-    --     end,
-    -- },
-
-    -- Autocomplete
+    -- Autocompletion.
     {
         "hrsh7th/nvim-cmp",
         event = "InsertEnter",
@@ -906,9 +865,24 @@ require("lazy").setup({
             ]])
         end,
     },
-    -- {"saadparwaiz1/cmp_luasnip"},
-    -- Debugging
     {
+        -- Interactive debugging in-editor.
+        --      <leader>b    - set breakpoint
+        --      <leader>B    - set conditional breakpoint
+        --      <leader>;    - evaluate variable under cursor
+        --      <leader>gb   - continue until cursor
+        --      F1           - continue
+        --      F2           - step Into
+        --      F3           - step Over
+        --      F4           - step Out
+        --      F5           - step backward (only for RR?)
+        --      F6           - up call stack
+        --      F7           - down call stack
+        --      F10          - restart debugging
+        --
+        -- NOTE: you can execute GDB commands in the DAP-REPL window with `-exec` prefix
+        -- -exec p/x cur
+        -- $2 = 0x7fffd96ef052
         "mfussenegger/nvim-dap",
         dependencies = {
             "rcarriga/nvim-dap-ui",
@@ -952,11 +926,23 @@ require("lazy").setup({
             })
             require("nvim-dap-virtual-text").setup({})
 
-            vim.keymap.set("n", "<space>b", dap.toggle_breakpoint)
-            vim.keymap.set("n", "<space>gb", dap.run_to_cursor)
+            -- Insert a conditional breakpoint. e.g.:
+            -- :DapConditional "foo > 10"
+            vim.api.nvim_create_user_command('DapConditional', function(args)
+                -- Remove surrounding quotes if present
+                local condition = args.args:match('^"(.*)"$') or args.args
+                dap.toggle_breakpoint(condition)
+            end, { nargs = 1 })
 
-            -- Eval var under cursor
-            vim.keymap.set("n", "<space>;", function()
+            vim.keymap.set("n", "<leader>gb", dap.run_to_cursor)
+            vim.keymap.set("n", "<leader>b", dap.toggle_breakpoint)
+            vim.keymap.set("n", "<leader>B", function()
+                local condition = vim.fn.input("Enter condition: ")
+                vim.cmd("DapConditional " .. vim.fn.shellescape(condition))
+            end, { desc = "Set conditional breakpoint" })
+
+            -- Eval variable under cursor.
+            vim.keymap.set("n", "<leader>;", function()
                 ui.eval(nil, { enter = true })
             end)
 
@@ -971,22 +957,10 @@ require("lazy").setup({
 
             vim.keymap.set("n", "<F10>", dap.restart)
 
-            -- NOTE: you can execute GDB commands in the DAP-REPL window with `-exec` prefix
-            -- -exec p/x cur
-            -- $2 = 0x7fffd96ef052
-
             dap.listeners.before.attach.dapui_config = function() ui.open() end
             dap.listeners.before.launch.dapui_config = function() ui.open() end
             dap.listeners.before.event_terminated.dapui_config = function() ui.close() end
             dap.listeners.before.event_exited.dapui_config = function() ui.close() end
-
-            -- Insert a conditional breakpoint. e.g.:
-            -- :DapConditional "foo > 10"
-            vim.api.nvim_create_user_command('DapConditional', function(args)
-                -- Remove surrounding quotes if present
-                local condition = args.args:match('^"(.*)"$') or args.args
-                dap.toggle_breakpoint(condition)
-            end, { nargs = 1 })
 
             -- Fixup DAP UI after window resize.
             vim.api.nvim_create_user_command('DapUiReset', function()
@@ -1081,7 +1055,6 @@ require("lazy").setup({
         end,
     },
 
-
     -- LLM coding
     {
         'spenserlee/dingllm.nvim',
@@ -1119,7 +1092,6 @@ require("lazy").setup({
             local helpful_prompt = 'You are a helpful assistant. What I have sent are my notes so far.'
             local dingllm = require 'dingllm'
 
-
             -- https://ai.google.dev/gemini-api/docs/models/gemini
             local function gemeni_replace()
                 dingllm.invoke_llm_and_stream_into_editor({
@@ -1141,35 +1113,6 @@ require("lazy").setup({
                 }, dingllm.make_gemini_spec_curl_args, dingllm.handle_gemini_spec_data)
             end
 
-            -- https://console.groq.com/docs/models
-            local function groq_replace()
-                dingllm.invoke_llm_and_stream_into_editor({
-                    url = 'https://api.groq.com/openai/v1/chat/completions',
-                    -- model = 'llama-3.1-70b-versatile',
-                    -- model = 'llama-3.1-8b-instant'
-                    model = 'llama3-70b-8192',
-                    api_key_name = 'GROQ_API_KEY',
-                    system_prompt = system_prompt,
-                    replace = true,
-                }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-                -- }, dingllm.make_openai_spec_curl_args, dingllm.handle_groq_spec_data)
-            end
-
-            local function groq_help()
-                dingllm.invoke_llm_and_stream_into_editor({
-                    url = 'https://api.groq.com/openai/v1/chat/completions',
-                    -- model = 'llama-3.1-70b-versatile',
-                    -- model = 'llama-3.1-8b-instant'
-                    model = 'llama3-70b-8192',
-                    api_key_name = 'GROQ_API_KEY',
-                    system_prompt = helpful_prompt,
-                    replace = false,
-                }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-                -- }, dingllm.make_openai_spec_curl_args, dingllm.handle_groq_spec_data)
-            end
-
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>g', groq_replace, { desc = 'llm groq' })
-            -- vim.keymap.set({ 'n', 'v' }, '<leader>G', groq_help, { desc = 'llm groq_help' })
             vim.keymap.set({ 'n', 'v' }, '<leader>k', gemeni_replace, { desc = 'llm gemeni' })
             vim.keymap.set({ 'n', 'v' }, '<leader>K', gemeni_help, { desc = 'llm gemeni_help' })
         end,
@@ -1189,6 +1132,7 @@ function _G.toggle_diagnostics()
         vim.g.diagnostics_active = true
     end
 end
+-- Toggle diagnostics display, it can be very cluttered.
 vim.api.nvim_set_keymap('n', '<leader>tt', ':call v:lua.toggle_diagnostics()<CR>', { noremap = true, silent = false })
 
 local sign = function(opts)
@@ -1255,7 +1199,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         bufmap("n", "go", "<cmd>lua vim.lsp.buf.type_definition()<cr>")
         -- bufmap("n", "gr", "<cmd>lua vim.lsp.buf.references()<cr>")
         bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>")
-        bufmap("n", "gs", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
+        bufmap("n", "<leader>H", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
         bufmap("n", "<F9>", "<cmd>lua vim.lsp.buf.rename()<cr>")
         bufmap({"n", "x"}, "<F12>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
         bufmap("n", "gl", "<cmd>lua vim.diagnostic.open_float()<cr>")

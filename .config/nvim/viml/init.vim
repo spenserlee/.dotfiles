@@ -1,7 +1,3 @@
-" VIM settings which should just be default
-" Using neovim, but keeping the basics in vim script for easy copying to other
-" devices for a more sane vanilla vim experience.
-
 " --- general
 filetype plugin indent on
 let mapleader = " "
