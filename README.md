@@ -1,8 +1,14 @@
 # .dotfiles
 
-My configuration files contained in a bare git repo inspired by:
+Configuration files for my development environment using neovim and tmux.
 
-https://www.atlassian.com/git/tutorials/dotfiles
+![Preview with nvim and terminal splits](./.config/dotshowcase/preview_01.png?raw=true "Preview")
+
+---
+
+Currently managed in a [bare git repo](https://www.atlassian.com/git/tutorials/dotfiles).
+
+---
 
 TLDR:
 
@@ -20,8 +26,9 @@ New machine:
     dotfig checkout
     dotfig config --local status.showUntrackedFiles no
     dotfig fetch origin '*:*'  # fetch remote branches
-     
-    # due to bare repo, may require explicit git config for new branches
+
+Due to bare repo, may require explicit git config for new branches:
+
     $ cat .dotfiles/config
     [core]
             repositoryformatversion = 0
@@ -40,34 +47,15 @@ New machine:
 
 ---
 
-## TODO / NOTES:
+## TODO:
 
-* add some pics
+* installation script for the required applications.
+* theme picker for night/day colorschemes
 
-* neovim plugins tbd
-    * LSP / DAP
-        * DAP - don't forget to install `gdb`
-    * treesitter
-    * whichkey
-    * quickfix
 
-* tmux session save/restore
+## Application Setup
 
-* fix italics not working in tmux
-    * <https://old.reddit.com/r/tmux/comments/yd62te/i_really_need_help_with_italic_and_truecolor>
-
-* fix git gutter / fugitive not working for bare repo
-    * workaround is to invoke nvim after setting some env vars:
-        `GIT_DIR=$HOME/.dotfiles GIT_WORK_TREE=$HOME nvim`
-    * similar problem discussed here:
-      * <https://github.com/tpope/vim-fugitive/issues/1981#issuecomment-1107388377>
-      * <https://stackoverflow.com/a/66624354/5323947>
-
-* try out ZSH
-
-## Installation
-
-This should just be a script, but for now:
+Here's the basics (substitute updated version numbers where necessary):
 
 * git
 ```
@@ -142,5 +130,4 @@ cd luarocks-3.11.1/
 make
 sudo make install
 sudo apt install lua5.1
-
 ```
