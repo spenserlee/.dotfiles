@@ -63,7 +63,7 @@ nnoremap <CR> ciw
 noremap <C-s> :write<CR>
 
 " ctrl+space: equalize splits
-noremap <C-Space> <C-w>=
+" noremap <C-Space> <C-w>=
 
 " quickfix managment
 function! ToggleQuickfix()
