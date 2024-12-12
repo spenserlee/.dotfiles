@@ -237,6 +237,54 @@ require("lazy").setup({
             vim.keymap.set("n", "<leader>O", "<cmd>Oil --float<CR>", { desc = "Open Oil in a floating window" })
         end
     },
+
+    -- Organize your life.
+    --      <leader>oa = open agenda file.
+    --      <leader>oc = open notes file (to be re-filed).
+    {
+        'nvim-orgmode/orgmode',
+        dependencies = {
+            {
+                "nvim-orgmode/org-bullets.nvim",
+                config = function()
+                    require('org-bullets').setup()
+                end,
+            }
+        },
+        event = 'VeryLazy',
+        ft = { 'org' },
+        config = function()
+            require('orgmode').setup({
+                org_agenda_files = '~/orgfiles/**/*',
+                org_default_notes_file = '~/orgfiles/refile.org',
+            })
+
+            require('nvim-treesitter.configs').setup({
+                  ignore_install = { 'org' },
+            })
+        end,
+    },
+    {
+        "chipsenkbeil/org-roam.nvim",
+        tag = "0.1.1",
+        dependencies = {
+            {
+                "nvim-orgmode/orgmode",
+                tag = "0.3.7",
+            },
+        },
+        config = function()
+            require("org-roam").setup({
+                directory = "~/orgfiles",
+                -- optional
+                -- org_files = {
+                --     "~/another_org_dir",
+                --     "~/some/folder/*.org",
+                --     "~/a/single/org_file.org",
+                -- }
+            })
+        end
+    },
     {
         -- Add git commands directly in the editor.
         --
@@ -786,6 +834,7 @@ require("lazy").setup({
                     { name = "luasnip", keyword_length = 2 },
                     { name = "buffer", keyword_length = 3 },
                     { name = "path" },
+                    { name = 'orgmode' },
                 }),
                 preselect = cmp.PreselectMode.None,
                 completion = {
@@ -1080,7 +1129,7 @@ require("lazy").setup({
             Generate valid code only.
             ]]
 
-            local dingllm = require 'dingllm'
+            local dingllm = require('dingllm')
 
             -- TODO: Setup Grok API
             -- https://x.ai/blog/api
