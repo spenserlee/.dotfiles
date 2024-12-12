@@ -89,6 +89,10 @@ vim.api.nvim_create_user_command(
     }
 )
 
+-- TODO: add this but for visual selection too.
+-- Duplicate a line and comment out the first line
+vim.keymap.set('n', 'yc', 'yy<cmd>normal gcc<CR>p')
+
 -- Plugins
 require("lazy").setup({
     {
@@ -817,25 +821,7 @@ require("lazy").setup({
                     ["<C-f>"] = cmp.mapping.scroll_docs(4),
                     ["<C-y"] = cmp.mapping.complete(),
                     ["<C-e>"] = cmp.mapping.close(),
-
                     ['<CR>'] = cmp.mapping.confirm({ select = true }),
-
-                    -- this suggested config doesn't work properly if use tab to
-                    -- cycle through the list...
-                    -- ['<CR>'] = cmp.mapping(function(fallback)
-                    --     if cmp.visible() then
-                    --         if luasnip.expandable() then
-                    --             luasnip.expand()
-                    --         else
-                    --             cmp.confirm({
-                    --                 select = true,
-                    --             })
-                    --         end
-                    --     else
-                    --         fallback()
-                    --     end
-                    -- end),
-
                     ["<Tab>"] = cmp.mapping(function(fallback)
                         if cmp.visible() then
                             cmp.select_next_item(select_opts)
@@ -885,46 +871,55 @@ require("lazy").setup({
         -- $2 = 0x7fffd96ef052
         "mfussenegger/nvim-dap",
         dependencies = {
-            "rcarriga/nvim-dap-ui",
-            "theHamsta/nvim-dap-virtual-text",
+            {
+                "rcarriga/nvim-dap-ui",
+                opts = {
+                    layouts = { {
+                        elements = { {
+                            id = "scopes",
+                            size = 0.35
+                        }, {
+                            id = "breakpoints",
+                            size = 0.15
+                        }, {
+                            id = "stacks",
+                            size = 0.25
+                        }, {
+                            id = "watches",
+                            size = 0.25
+                        } },
+                        position = "left",
+                        size = 70
+                    }, {
+                        elements = { {
+                            id = "repl",
+                            size = 0.5
+                        }, {
+                            id = "console",
+                            size = 0.5
+                        } },
+                        position = "bottom",
+                        size = 15
+                    } },
+                },
+                config = function(_, opts)
+                    require("dapui").setup(opts)
+                    require("nvim-dap-virtual-text").setup({})
+                    require("neodev").setup({
+                      library = { plugins = { "nvim-dap-ui" }, types = true },
+                    })
+                end,
+                dependencies = {
+                    "folke/neodev.nvim",
+                    "theHamsta/nvim-dap-virtual-text",
+                }
+            },
             "nvim-neotest/nvim-nio",
             "williamboman/mason.nvim",
         },
         config = function()
             local dap = require("dap")
             local ui = require("dapui")
-
-            -- command to reset DAP UI panes
-            ui.setup({
-                layouts = { {
-                    elements = { {
-                        id = "scopes",
-                        size = 0.35
-                    }, {
-                        id = "breakpoints",
-                        size = 0.15
-                    }, {
-                        id = "stacks",
-                        size = 0.25
-                    }, {
-                        id = "watches",
-                        size = 0.25
-                    } },
-                    position = "left",
-                    size = 70
-                }, {
-                    elements = { {
-                        id = "repl",
-                        size = 0.5
-                    }, {
-                        id = "console",
-                        size = 0.5
-                    } },
-                    position = "bottom",
-                    size = 15
-                } },
-            })
-            require("nvim-dap-virtual-text").setup({})
 
             -- Insert a conditional breakpoint. e.g.:
             -- :DapConditional "foo > 10"
@@ -1061,55 +1056,69 @@ require("lazy").setup({
         dependencies = { 'nvim-lua/plenary.nvim' },
         config = function()
 
-            -- local system_prompt = [[
-            -- You are an AI programming assistant integrated into a code editor. Your purpose is to help the user with programming tasks as they write code.
-            -- Key capabilities:
-            -- - Thoroughly analyze the user's code and provide insightful suggestions for improvements related to best practices, performance, readability, and maintainability. Explain your reasoning.
-            -- - Answer coding questions in detail, using examples from the user's own code when relevant. Break down complex topics step- Spot potential bugs and logical errors. Alert the user and suggest fixes.
-            -- - Upon request, add helpful comments explaining complex or unclear code.
-            -- - Suggest relevant documentation, StackOverflow answers, and other resources related to the user's code and questions.
-            -- - Engage in back-and-forth conversations to understand the user's intent and provide the most helpful information.
-            -- - Keep concise and use markdown.
-            -- - When asked to create code, only generate the code. No bugs.
-            -- - Think step by step
-            -- ]]
-
-            -- local system_prompt_replace = "Follow the instructions in the code comments. Generate code only. Think step by step. If you must speak, do so in comments. Generate valid code only."
-            --
             local system_prompt = [[
-            You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code.  Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone.
-            Instructions for the output format:
-            - Output code without descriptions, unless it is important.
-            - Minimize prose, comments and empty lines.
-            - Do not provide any backticks that surround the code.
-            - Never ever output backticks like this ```.
-            - Make it easy to copy and paste.
+            You are an AI programming assistant integrated into a code editor. Your purpose is to help the user with programming tasks as they write code or answer questions.
+            Key capabilities:
+            - Thoroughly analyze the user's code and provide insightful suggestions for improvements related to best practices, performance, readability, and maintainability. Explain your reasoning.
+            - Answer coding questions in detail, using examples from the user's own code when relevant. Break down complex topics step- Spot potential bugs and logical errors. Alert the user and suggest fixes.
+            - Upon request, add helpful comments explaining complex or unclear code.
+            - Suggest relevant documentation, StackOverflow answers, and other resources related to the user's code and questions.
+            - Engage in back-and-forth conversations to understand the user's intent and provide the most helpful information.
             - Consider other possibilities to achieve the result, do not be limited by the prompt.
+            - Keep concise and use markdown.
+            - When asked to create code, only generate the code. No bugs.
+            - Think step by step.
             ]]
 
-            -- local system_prompt =
-            -- 'You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks'
-            local helpful_prompt = 'You are a helpful assistant. What I have sent are my notes so far.'
+            local replace_prompt = [[
+            You are an AI programming assistant integrated into a code editor.
+            Follow the instructions in the code comments.
+            Generate code only.
+            Do not output markdown backticks like this ```.
+            Think step by step.
+            If you must speak, do so in comments.
+            Generate valid code only.
+            ]]
+
             local dingllm = require 'dingllm'
+
+            -- TODO: Setup Grok API
+            -- https://x.ai/blog/api
+
+            local release_url = 'https://generativelanguage.googleapis.com/v1/models'
+            -- local g_model = 'gemini-1.5-flash'
+            -- local g_model = 'gemini-1.5-pro'
+
+            local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
+            -- local g_model = 'gemini-exp-1206'
+            local g_model = 'gemini-2.0-flash-exp'
+
+            local debug_path = '/tmp/dingllm_debug.log'
 
             -- https://ai.google.dev/gemini-api/docs/models/gemini
             local function gemeni_replace()
                 dingllm.invoke_llm_and_stream_into_editor({
-                    url = 'https://generativelanguage.googleapis.com/v1/models',
-                    model = 'gemini-1.5-flash',
+                    -- url = release_url,
+                    url = beta_url,
+                    model = g_model,
                     api_key_name = 'GEMINI_API_KEY_159',
-                    system_prompt = system_prompt,
+                    system_prompt = replace_prompt,
                     replace = true,
+                    debug = false,
+                    debug_path = debug_path,
                 }, dingllm.make_gemini_spec_curl_args, dingllm.handle_gemini_spec_data)
             end
 
             local function gemeni_help()
                 dingllm.invoke_llm_and_stream_into_editor({
-                    url = 'https://generativelanguage.googleapis.com/v1/models',
-                    model = 'gemini-1.5-flash',
+                    -- url = release_url,
+                    url = beta_url,
+                    model = g_model,
                     api_key_name = 'GEMINI_API_KEY_159',
-                    system_prompt = helpful_prompt,
+                    system_prompt = system_prompt,
                     replace = false,
+                    debug = false,
+                    debug_path = debug_path,
                 }, dingllm.make_gemini_spec_curl_args, dingllm.handle_gemini_spec_data)
             end
 
