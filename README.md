@@ -8,6 +8,8 @@ Configuration files for my development environment using neovim and tmux.
 ![nvim FZF file search](./.config/dotshowcase/preview_04.png?raw=true "Preview nvim fuzzy git file search")
 ![nvim ZEN mode](./.config/dotshowcase/preview_06.png?raw=true "Preview nvim zen mode")
 
+https://github.com/user-attachments/assets/5a840f01-f5ae-41f9-b59f-365e924e1da8
+
 ---
 
 Currently managed in a [bare git repo](https://www.atlassian.com/git/tutorials/dotfiles).
