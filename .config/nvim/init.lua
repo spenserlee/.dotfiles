@@ -273,6 +273,8 @@ require("lazy").setup({
                 tag = "0.3.7",
             },
         },
+        event = 'VeryLazy',
+        ft = { 'org' },
         config = function()
             require("org-roam").setup({
                 directory = "~/orgfiles",
@@ -372,20 +374,25 @@ require("lazy").setup({
         -- Multiple search highlights - great for log analysis.
         --      f<enter>   - add higlight for word/selection
         --      f<delete>  - remove highlighted word/selection
+        --      alt+n      - go next highlight
+        --      alt+N      - go prev highlight
         "azabiong/vim-highlighter",
         lazy = false,
         keys = {
             -- highlights across window splits :Hi ==
             -- hightlights only in current window  :Hi =
-            {"<leader>n", "<cmd>Hi}<cr>", desc = "Highlighter next recent"},
-            {"<leader>N", "<cmd>Hi{<cr>", desc = "Highlighter prev recent"},
+            {"<M-n>", "<cmd>Hi}<cr>", desc = "Highlighter next recent"},
+            {"<M-N>", "<cmd>Hi{<cr>", desc = "Highlighter prev recent"},
             {"<leader>}", "<cmd>Hi><cr>", desc = "Highlighter next any"},
             {"<leader>{", "<cmd>Hi<<cr>", desc = "Highlighter prev any"},
         },
-        config = function()
-            -- TODO: this isn't working right...
-            -- set global highlights by default
-            vim.cmd("Hi ==")
+        init = function()
+            vim.cmd([[
+                " synchronize across all tabs and windows
+                let HiSyncMode = 2
+                " :Hi/Find  [options]  expression  [directories_or_files]
+                let HiFindTool = 'rg -H --color=never --no-heading --column'
+            ]])
         end
     },
     {
@@ -1298,6 +1305,21 @@ require("mason-lspconfig").setup_handlers({
                     },
                 },
             },
+        }
+    end,
+    ["pylsp"] = function ()
+        -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
+        lspconfig.pylsp.setup {
+            settings = {
+                pylsp = {
+                    plugins = {
+                        pycodestyle = {
+                            -- ignore = {'W391'},
+                            maxLineLength = 100
+                        }
+                    }
+                }
+            }
         }
     end,
 })
