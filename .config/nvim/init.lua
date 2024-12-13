@@ -151,6 +151,13 @@ require("lazy").setup({
         end,
     },
     {
+        "sphamba/smear-cursor.nvim",
+        opts = {
+            smear_between_buffers = true,
+            smear_between_neighbor_lines = false,
+        },
+    },
+    {
         -- Status bar customization.
         "nvim-lualine/lualine.nvim",
         dependencies = { "nvim-tree/nvim-web-devicons" },

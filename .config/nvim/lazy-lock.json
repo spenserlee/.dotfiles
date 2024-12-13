@@ -47,6 +47,7 @@
   "orgmode": { "branch": "master", "commit": "ac6e02ab638ee324b3e3894e2a05488aad0b467c" },
   "plenary.nvim": { "branch": "master", "commit": "2d9b06177a975543726ce5c73fca176cedbffe9d" },
   "rustaceanvim": { "branch": "master", "commit": "a244210b28f9055c2b4cfa85c92c8a71c13671c9" },
+  "smear-cursor.nvim": { "branch": "main", "commit": "45894eb7ab2adb1f6a8321655420348d436b2a72" },
   "vim-fugitive": { "branch": "master", "commit": "320b18fba2a4f2fe3c8225c778c687e0d2620384" },
   "vim-highlighter": { "branch": "main", "commit": "04b56c5bd44f1456e39dfee032ccf29bfaa9a587" },
   "vim-obsession": { "branch": "master", "commit": "ed9dfc7c2cc917ace8b24f4f9f80a91e05614b63" },
