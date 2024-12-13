@@ -98,6 +98,7 @@ require("lazy").setup({
     {
         -- Load colorscheme first.
         "ellisonleao/gruvbox.nvim",
+        disable = true,
         lazy = false,
         priority = 1000,
         config = function()
@@ -109,7 +110,7 @@ require("lazy").setup({
             --         folds = false,
             --     }
             -- })
-            vim.cmd("colorscheme gruvbox")
+            -- vim.cmd("colorscheme gruvbox")
         end
     },
     -- TODO: how to configure multiple colorschemes and switch between them nicely?
@@ -128,15 +129,27 @@ require("lazy").setup({
     --         ]])
     --     end
     -- },
-    -- {
-    --     "sainnhe/everforest",
-    --     config = function()
-    --         vim.opt.termguicolors = true
-    --         vim.g.everforest_background = "hard"
-    --         vim.g.everforest_disable_italic_comment = true
-    --         vim.cmd.colorscheme("everforest")
-    --     end
-    -- },
+    {
+        "neanias/everforest-nvim",
+        version = false,
+        lazy = false,
+        priority = 1000,
+        config = function()
+            local everforest = require("everforest")
+            everforest.setup({
+                background = "hard",
+                italics = true,
+                -- transparent_background_level = 0,
+                -- disable_italic_comments = false
+                colours_override = function (palette)
+                    -- hard-er
+                    -- source: <https://gist.github.com/suppayami/7d427d116b97564d1c565a7aed092d08>
+                    palette.bg0 = "#1E2327"
+                end
+            })
+            everforest.load()
+        end,
+    },
     {
         -- Status bar customization.
         "nvim-lualine/lualine.nvim",

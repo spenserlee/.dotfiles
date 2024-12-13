@@ -62,6 +62,7 @@
                 "source": "Windows.Terminal.Azure"
             },
             {
+                "colorScheme": "Everforest Dark Hard",
                 "font": 
                 {
                     "face": "JetBrainsMono Nerd Font Propo"
@@ -93,6 +94,52 @@
     },
     "schemes": 
     [
+        {
+            "background": "#1E2327",
+            "black": "#4B565C",
+            "blue": "#7FBBB3",
+            "brightBlack": "#4B565C",
+            "brightBlue": "#7FBBB3",
+            "brightCyan": "#83C092",
+            "brightGreen": "#A7C080",
+            "brightPurple": "#D39BB6",
+            "brightRed": "#E67E80",
+            "brightWhite": "#D3C6AA",
+            "brightYellow": "#DBBC7F",
+            "cursorColor": "#FFFFFF",
+            "cyan": "#83C092",
+            "foreground": "#D3C6AA",
+            "green": "#A7C080",
+            "name": "Everforest Dark Hard",
+            "purple": "#D699B6",
+            "red": "#E67E80",
+            "selectionBackground": "#30383D",
+            "white": "#D3C6AA",
+            "yellow": "#DBBC7F"
+        },
+        {
+            "background": "#2D353B",
+            "black": "#475258",
+            "blue": "#7FBBB3",
+            "brightBlack": "#4B565C",
+            "brightBlue": "#7FBBB3",
+            "brightCyan": "#83C092",
+            "brightGreen": "#A7C080",
+            "brightPurple": "#D699B6",
+            "brightRed": "#E67E80",
+            "brightWhite": "#D3C6AA",
+            "brightYellow": "#DBBC7F",
+            "cursorColor": "#FFFFFF",
+            "cyan": "#83C092",
+            "foreground": "#D3C6AA",
+            "green": "#A7C080",
+            "name": "Everforest Dark Medium",
+            "purple": "#D699B6",
+            "red": "#E67E80",
+            "selectionBackground": "#FFFFFF",
+            "white": "#D3C6AA",
+            "yellow": "#DBBC7F"
+        },
         {
             "background": "#282828",
             "black": "#282828",
