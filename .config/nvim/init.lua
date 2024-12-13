@@ -144,7 +144,7 @@ require("lazy").setup({
                 colours_override = function (palette)
                     -- hard-er
                     -- source: <https://gist.github.com/suppayami/7d427d116b97564d1c565a7aed092d08>
-                    palette.bg0 = "#1E2327"
+                    palette.bg0 = "#1E2327" -- replaces bg0 = "#272e33",
                 end
             })
             everforest.load()
