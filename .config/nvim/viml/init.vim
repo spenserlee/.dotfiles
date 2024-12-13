@@ -25,7 +25,8 @@ set sidescrolloff=5                     " buffer line space when scrolling left/
 set relativenumber                      " line numbers relative to cursor
 set number                              " show absolute line numbers
 set textwidth=80                        " show the 80th column
-set colorcolumn=+1"
+" set colorcolumn=+1"
+set colorcolumn=
 set hlsearch                            " highlight search results
 set splitbelow                          " new panes appear more natural
 set splitright
