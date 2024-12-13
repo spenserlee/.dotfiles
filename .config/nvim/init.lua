@@ -257,6 +257,7 @@ require("lazy").setup({
             require('orgmode').setup({
                 org_agenda_files = '~/orgfiles/**/*',
                 org_default_notes_file = '~/orgfiles/refile.org',
+                org_adapt_indentation = false,
             })
 
             require('nvim-treesitter.configs').setup({
@@ -803,7 +804,6 @@ require("lazy").setup({
             "hrsh7th/cmp-buffer",
             "hrsh7th/cmp-path",
             "hrsh7th/cmp-nvim-lsp",
-            'hrsh7th/cmp-cmdline',
             'hrsh7th/cmp-nvim-lsp-signature-help',
             {
                 "L3MON4D3/LuaSnip",
@@ -838,10 +838,13 @@ require("lazy").setup({
                 sources = cmp.config.sources({
                     { name = "nvim_lsp" },
                     { name = 'nvim_lsp_signature_help' },
-                    { name = "luasnip", keyword_length = 2 },
-                    { name = "buffer", keyword_length = 3 },
-                    { name = "path" },
                     { name = 'orgmode' },
+                    { name = "luasnip", keyword_length = 4 },
+
+                    -- TODO: until this issue is addressed I have to disable it.
+                    -- https://github.com/hrsh7th/cmp-buffer/issues/75
+                    -- { name = "buffer", keyword_length = 5 },
+                    { name = "path" },
                 }),
                 preselect = cmp.PreselectMode.None,
                 completion = {
