@@ -302,5 +302,32 @@
             "yellow": "#B47109"
         }
     ],
-    "themes": []
+    "theme": "Everforest Dark Hard",
+    "themes":
+    [
+        {
+            "name": "Everforest Dark Hard",
+            "tab":
+            {
+                "background": "#272E33FF",
+                "iconStyle": "default",
+                "showCloseButton": "always",
+                "unfocusedBackground": null
+            },
+            "tabRow":
+            {
+                "background": "#1E2326FF",
+                "unfocusedBackground": "#1E2326FF"
+            },
+            "window":
+            {
+                "applicationTheme": "dark",
+                "experimental.rainbowFrame": false,
+                "frame": null,
+                "unfocusedFrame": null,
+                "useMica": false
+            }
+        }
+    ],
+    "useAcrylicInTabRow": false
 }
