@@ -211,6 +211,7 @@ require("lazy").setup({
             {"<leader>l", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
             {"<leader>c", "<cmd>FzfLua commands<cr>", desc = "FZF commands"},
             {"<leader>s", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "LSP Document Symbols"},
+            {"<leader>of", "<cmd>lua require'fzf-lua'.files({ prompt='orgfiles> ', cwd='~/orgfiles' })<cr>", desc = "FZF Org Files"},
         },
     },
     {
