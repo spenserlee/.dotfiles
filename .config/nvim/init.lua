@@ -789,7 +789,7 @@ require("lazy").setup({
             local function setup_folding()
                 -- Default to Treesitter folding
                 vim.opt.foldmethod = "expr"
-                vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+                vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
                 vim.opt.foldcolumn = "0"
                 vim.opt.foldlevel = 99
                 vim.opt.foldtext = ""
@@ -799,7 +799,7 @@ require("lazy").setup({
                 local function setup_lsp_folding(client, bufnr)
                     if client.server_capabilities.foldingRangeProvider then
                         vim.api.nvim_buf_set_option(bufnr, "foldmethod", "expr")
-                        vim.api.nvim_buf_set_option(bufnr, "foldexpr", "v:lua.vim.lsp.buf_get_fold_range(nil, 0, v:foldstart)")
+                        vim.api.nvim_buf_set_option(bufnr, "foldexpr", "nvim_treesitter#foldexpr()")
                     end
                 end
 
@@ -811,13 +811,18 @@ require("lazy").setup({
                     end,
                 })
 
-                -- Filetype-specific overrides (if needed)
-                vim.api.nvim_create_autocmd("FileType", {
-                    pattern = "json",
+                -- Revert to syntax folding if no tree sitter.
+                vim.api.nvim_create_autocmd({ "FileType" }, {
                     callback = function()
-                        vim.opt.foldmethod = "syntax"
+                        if require("nvim-treesitter.parsers").has_parser() then
+                            vim.opt.foldmethod = "expr"
+                            vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+                        else
+                            vim.opt.foldmethod = "syntax"
+                        end
                     end,
                 })
+
             end
 
             setup_folding()
