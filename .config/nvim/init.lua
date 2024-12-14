@@ -18,27 +18,6 @@ vim.opt.rtp:prepend(lazypath)
  -- Make sure to set `mapleader` before Lazy setup so your mappings are correct.
 vim.g.mapleader = " "
 
--- Set up code folding.
-vim.opt.foldmethod = "expr"
-vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-vim.opt.foldcolumn = "0"
-vim.opt.foldlevel = 99
-vim.opt.foldtext = ""
-vim.opt.foldnestmax = 4
--- vim.opt.foldlevelstart = 1
-
--- TODO: use new LSP foldexpr if available? <https://redd.it/1h34lr4>
--- vim.opt.foldexpr = "v:lua.vim.lsp.foldexpr()"
-
--- Folding keybinds:
--- * zR: open all folds
--- * zM: close all folds
--- * za: toggle fold at cursor
--- * zA: toggle fold and its children at curso
--- * zj: move to next fold
--- * zk: move to prev fold
--- * see also: <https://www.jackfranklin.co.uk/blog/code-folding-in-vim-neovim/>
-
 -- Show highlight for yanked regions
 vim.cmd[[
     augroup highlight_yank
@@ -797,6 +776,51 @@ require("lazy").setup({
                     additional_vim_regex_highlighting = false,
                 },
             })
+
+            -- Folding keybinds:
+            -- * zR: open all folds
+            -- * zM: close all folds
+            -- * za: toggle fold at cursor
+            -- * zA: toggle fold and its children at curso
+            -- * zj: move to next fold
+            -- * zk: move to prev fold
+
+            -- Folding configuration directly inside config
+            local function setup_folding()
+                -- Default to Treesitter folding
+                vim.opt.foldmethod = "expr"
+                vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+                vim.opt.foldcolumn = "0"
+                vim.opt.foldlevel = 99
+                vim.opt.foldtext = ""
+                vim.opt.foldnestmax = 4
+
+                -- Function to check if LSP provides folding and set it up
+                local function setup_lsp_folding(client, bufnr)
+                    if client.server_capabilities.foldingRangeProvider then
+                        vim.api.nvim_buf_set_option(bufnr, "foldmethod", "expr")
+                        vim.api.nvim_buf_set_option(bufnr, "foldexpr", "v:lua.vim.lsp.buf_get_fold_range(nil, 0, v:foldstart)")
+                    end
+                end
+
+                -- Setup LSP folding on attach
+                vim.api.nvim_create_autocmd("LspAttach", {
+                    callback = function(args)
+                        local client = vim.lsp.get_client_by_id(args.data.client_id)
+                        setup_lsp_folding(client, args.buf)
+                    end,
+                })
+
+                -- Filetype-specific overrides (if needed)
+                vim.api.nvim_create_autocmd("FileType", {
+                    pattern = "json",
+                    callback = function()
+                        vim.opt.foldmethod = "syntax"
+                    end,
+                })
+            end
+
+            setup_folding()
         end,
     },
     {
@@ -1150,15 +1174,17 @@ require("lazy").setup({
             - Think step by step.
             ]]
 
-            local replace_prompt = [[
-            You are an AI programming assistant integrated into a code editor.
-            Follow the instructions in the code comments.
-            Generate code only.
-            Do not output markdown backticks like this ```.
-            Think step by step.
-            If you must speak, do so in comments.
-            Generate valid code only.
-            ]]
+            -- local replace_prompt = [[
+            -- You are an AI programming assistant integrated into a code editor.
+            -- Follow the instructions in the code comments.
+            -- Generate code only.
+            -- Do not output markdown backticks like this ```.
+            -- Think step by step.
+            -- If you must speak, do so in comments.
+            -- Generate valid code only.
+            -- ]]
+
+            local replace_prompt = "You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Never include backticks or markdown formatting in your response. Any comment asking for changes should be removed after being satisfied. Other comments should be left alone."
 
             local dingllm = require('dingllm')
 
@@ -1170,8 +1196,8 @@ require("lazy").setup({
             -- local g_model = 'gemini-1.5-pro'
 
             local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
-            -- local g_model = 'gemini-exp-1206'
-            local g_model = 'gemini-2.0-flash-exp'
+            local g_model = 'gemini-exp-1206'
+            -- local g_model = 'gemini-2.0-flash-exp'
 
             local debug_path = '/tmp/dingllm_debug.log'
 
