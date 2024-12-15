@@ -172,23 +172,46 @@ require("lazy").setup({
             })
         end
     },
+    -- For unifying TMUX pane / VIM split navigation.
     {
-        -- For unifying TMUX pane / VIM split navigation.
-        -- TODO: try replacing with smart-splits.nvim
-        "alexghergh/nvim-tmux-navigation",
-        lazy = false,
-        config = function()
-            local nvim_tmux_nav = require("nvim-tmux-navigation")
-            nvim_tmux_nav.setup {
-                disable_when_zoomed = true,
-            }
-            vim.keymap.set("n", "<M-h>", nvim_tmux_nav.NvimTmuxNavigateLeft)
-            vim.keymap.set("n", "<M-j>", nvim_tmux_nav.NvimTmuxNavigateDown)
-            vim.keymap.set("n", "<M-k>", nvim_tmux_nav.NvimTmuxNavigateUp)
-            vim.keymap.set("n", "<M-l>", nvim_tmux_nav.NvimTmuxNavigateRight)
-            vim.keymap.set("n", "<M-\\>", nvim_tmux_nav.NvimTmuxNavigateLastActive)
-            vim.keymap.set("n", "<M-Space>", nvim_tmux_nav.NvimTmuxNavigateNext)
-        end,
+        'mrjones2014/smart-splits.nvim',
+        dependencies = {
+            {
+                "kwkarlwang/bufresize.nvim",
+                config = function()
+                    require("bufresize").setup()
+                end
+            },
+        },
+        config = function ()
+            require("smart-splits").setup({
+                default_amount = 5,
+                cursor_follows_swapped_bufs = true,
+                at_edge = function (ctx)
+                    if ctx.mux.type == "tmux" and ctx.mux.current_pane_is_zoomed() then
+                        return "stop"
+                    else
+                        return "wrap"
+                    end
+                end,
+                resize_mode = {
+                    hooks = {
+                        on_leave = require('bufresize').register,
+                    },
+                },
+            })
+            -- moving between splits: ALT+<hjkl>
+            vim.keymap.set('n', '<M-h>', require('smart-splits').move_cursor_left)
+            vim.keymap.set('n', '<M-j>', require('smart-splits').move_cursor_down)
+            vim.keymap.set('n', '<M-k>', require('smart-splits').move_cursor_up)
+            vim.keymap.set('n', '<M-l>', require('smart-splits').move_cursor_right)
+            vim.keymap.set('n', '<M-\\>', require('smart-splits').move_cursor_previous)
+            -- resizing splits: ALT+<HJKL>
+            vim.keymap.set('n', '<M-S-h>', require('smart-splits').resize_left)
+            vim.keymap.set('n', '<M-S-j>', require('smart-splits').resize_down)
+            vim.keymap.set('n', '<M-S-k>', require('smart-splits').resize_up)
+            vim.keymap.set('n', '<M-S-l>', require('smart-splits').resize_right)
+        end
     },
     {
         -- For saving editor state (windows/tabs/layout) to a session file.
