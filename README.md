@@ -32,7 +32,6 @@ Setting up a new machine:
         xargs -I{} mv {} .config-backup/{}
     dotfig checkout
     dotfig config --local status.showUntrackedFiles no
-    dotfig fetch origin '*:*'  # fetch remote branches
 
 Due to bare repo, may require explicit git config for new branches:
 
@@ -43,6 +42,7 @@ Due to bare repo, may require explicit git config for new branches:
             bare = true
     [remote "origin"]
             url = git@github.com:spenserlee/.dotfiles.git
+            fetch = +refs/heads/*:refs/remotes/origin/*
     [status]
             showUntrackedFiles = no
     [branch "main"]
