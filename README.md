@@ -2,13 +2,9 @@
 
 Configuration files for my development environment using neovim and tmux.
 
-![nvim and terminal](./.config/dotshowcase/preview_01.png?raw=true "Preview nvim and terminal splits")
-![nvim DAP debugging](./.config/dotshowcase/preview_02.png?raw=true "Preview nvim DAP")
-![nvim LSP showcase](./.config/dotshowcase/preview_03.png?raw=true "Preview nvim LSP macro expansion capabilities")
-![nvim FZF file search](./.config/dotshowcase/preview_04.png?raw=true "Preview nvim fuzzy git file search")
-![nvim ZEN mode](./.config/dotshowcase/preview_06.png?raw=true "Preview nvim zen mode")
+![nvim DAP debugging](./.config/dotshowcase/new_preview_01.png?raw=true "Preview nvim DAP")
 
-https://github.com/user-attachments/assets/5a840f01-f5ae-41f9-b59f-365e924e1da8
+
 
 ---
 
