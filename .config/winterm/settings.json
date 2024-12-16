@@ -95,7 +95,30 @@
     "schemes": 
     [
         {
-            "background": "#1E2327",
+            "background": "#e5dfc5",
+            "black": "#D8D3BA",
+            "blue": "#3A94C5",
+            "brightBlack": "#D8D3BA",
+            "brightBlue": "#3A94C5",
+            "brightCyan": "#35A77C",
+            "brightGreen": "#8DA101",
+            "brightPurple": "#DF69BA",
+            "brightRed": "#F85552",
+            "brightWhite": "#5C6A72",
+            "brightYellow": "#DFA000",
+            "cursorColor": "#000000",
+            "cyan": "#35A77C",
+            "foreground": "#5C6A72",
+            "green": "#8DA101",
+            "name": "Everforest Soft Light",
+            "purple": "#DF69BA",
+            "red": "#F85552",
+            "selectionBackground": "#F4DBD0",
+            "white": "#5C6A72",
+            "yellow": "#DFA000"
+        },
+        {
+            "background": "#1E2326",
             "black": "#4B565C",
             "blue": "#7FBBB3",
             "brightBlack": "#4B565C",
@@ -302,30 +325,41 @@
             "yellow": "#B47109"
         }
     ],
-    "theme": "Everforest Dark Hard",
+    "theme": { "dark": "Everforest Dark Hard", "light": "Everforest Soft Light" },
     "themes":
     [
         {
-            "name": "Everforest Dark Hard",
+            "name": "Everforest Soft Light",
             "tab":
             {
-                "background": "#272E33FF",
-                "iconStyle": "default",
-                "showCloseButton": "always",
+                "background": "#E5DFC5FF",
                 "unfocusedBackground": null
             },
             "tabRow":
             {
+                "background": "#F3EAD3FF",
+                "unfocusedBackground": "#E5DFC5FF"
+            },
+            "window":
+            {
+                "applicationTheme": "light",
+            }
+        },
+        {
+            "name": "Everforest Dark Hard",
+            "tab":
+            {
                 "background": "#1E2326FF",
-                "unfocusedBackground": "#1E2326FF"
+                "unfocusedBackground": "#272E33FF"
+            },
+            "tabRow":
+            {
+                "background": "#272E33FF",
+                "unfocusedBackground": "#374145FF"
             },
             "window":
             {
                 "applicationTheme": "dark",
-                "experimental.rainbowFrame": false,
-                "frame": null,
-                "unfocusedFrame": null,
-                "useMica": false
             }
         }
     ],
