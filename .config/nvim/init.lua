@@ -392,15 +392,15 @@ require("lazy").setup({
             })
         end
     },
-    {
-        -- VCS independent gutter display
-        -- TODO: the gutter display is kinda borked, skip it for now
-        -- "mhinz/vim-signify",
-        -- init = function()
-        --    -- decrease time to swap file write so git gutter updates sooner
-        --     vim.api.nvim_set_option("updatetime", 300)
-        -- end,
-    },
+    -- {
+    --     VCS independent gutter display
+    --     TODO: the gutter display is kinda borked, skip it for now
+    --     "mhinz/vim-signify",
+    --     init = function()
+    --        -- decrease time to swap file write so git gutter updates sooner
+    --         vim.api.nvim_set_option("updatetime", 300)
+    --     end,
+    -- },
     {
         -- Multiple search highlights - great for log analysis.
         --      f<enter>   - add higlight for word/selection
@@ -440,24 +440,48 @@ require("lazy").setup({
         -- Displays filename on each split in floating in top right.
         -- TODO: disable this for DAP panes?
         'b0o/incline.nvim',
+        event = 'VeryLazy',
+        keys = {
+            { '<leader>I', '<cmd>lua require"incline".toggle()<CR>', desc = 'Incline: Toggle' },
+        },
         config = function()
             require('incline').setup({
-                window = {
-                    zindex = 39
-                }
+                hide = {
+                    cursorline = 'focused_win',
+                },
+                ignore = {
+                    unlisted_buffers = false,
+                    floating_wins = false,
+                    buftypes = function(bufnr, buftype)
+                        return not (
+                        buftype == ''
+                        or buftype == 'help'
+                        or buftype == 'quickfix'
+                        or vim.bo[bufnr].filetype == 'dap-repl'
+                        or vim.bo[bufnr].filetype == 'dapui_scopes'
+                        or vim.bo[bufnr].filetype == 'dapui_breakpoints'
+                        or vim.bo[bufnr].filetype == 'dapui_stacks'
+                        or vim.bo[bufnr].filetype == 'dapui_watches'
+                        or vim.bo[bufnr].filetype == 'dapui_console'
+                        )
+                    end,
+                    wintypes = function(winid, wintype)
+                        local zen_view = package.loaded['zen-mode.view']
+                        if zen_view and zen_view.is_open() then
+                            return winid ~= zen_view.win
+                        end
+                        return not (wintype == '' or wintype == 'quickfix' or wintype == 'loclist')
+                    end,
+                },
             })
         end,
-        -- Optional: Lazy load Incline
-        event = 'VeryLazy',
     },
     {
         -- Declutter visuals and just focus on one buffer.
         "folke/zen-mode.nvim",
         opts = {
-            -- TODO: broken in some edge cases like diffview commit log popup.
-            zindex = 42,
             window = {
-                width = 0.6
+                width = 0.7
             },
             plugins = {
                 -- disable some global vim options (vim.o...)
@@ -474,13 +498,11 @@ require("lazy").setup({
                 tmux = { enabled = false }, -- disables the tmux statusline
             },
             on_open = function(_)
-                require('incline').disable()
                 vim.fn.system([[tmux set status off]])
                 vim.fn.system(
                 [[tmux list-panes -F '\#F' | grep -q Z || tmux resize-pane -Z]])
             end,
             on_close = function(_)
-                require('incline').enable()
                 vim.fn.system([[tmux set status on]])
             end
         },
@@ -621,6 +643,7 @@ require("lazy").setup({
                     -- Debugger adapters
                     "bash-debug-adapter", -- Shell
                     "codelldb", -- C/C++/Rust
+                    "cpptools",
                     -- "debugpy", -- Python
                 },
             })
