@@ -130,6 +130,13 @@ require("lazy").setup({
         end,
     },
     {
+        "norcalli/nvim-colorizer.lua",
+        cmd = {
+            "ColorizerAttachToBuffer",
+            "ColorizerDetachFromBuffer",
+        },
+    },
+    {
         "sphamba/smear-cursor.nvim",
         opts = {
             smear_between_buffers = true,
