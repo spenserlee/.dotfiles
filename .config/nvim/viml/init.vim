@@ -93,8 +93,8 @@ noremap [w :lprev<CR>
 noremap Q <NOP>
 
 " Move up/down lines visually when wrapped
-nnoremap <expr> k (v:count == 0 ? 'gk' : 'k')
-nnoremap <expr> j (v:count == 0 ? 'gj' : 'j')
+nnoremap <silent> <expr> k (v:count == 0 ? 'gk' : 'k')
+nnoremap <silent> <expr> j (v:count == 0 ? 'gj' : 'j')
 
 " Leader+h clears search highlighting
 map <silent> <Leader>h :noh<CR>:Hi clear<CR>

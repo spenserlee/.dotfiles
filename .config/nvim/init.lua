@@ -179,6 +179,72 @@ require("lazy").setup({
             })
         end
     },
+    {
+        'nanozuki/tabby.nvim',
+        dependencies = 'nvim-tree/nvim-web-devicons',
+        config = function()
+            local theme = {
+                fill = 'TabLineFill',
+                -- Also you can do this: fill = { fg='#f2e9de', bg='#907aa9', style='italic' }
+                head = 'TabLine',
+                current_tab = 'TabLineSel',
+                tab = 'TabLine',
+                win = 'TabLine',
+                tail = 'TabLine',
+            }
+            require('tabby').setup({
+                line = function(line)
+                    return {
+                        {
+                            -- TODO: cleanup color situation...
+                            { '  ', hl = { fg = '#7FBBB3', bg = '#414B50' } },
+                            -- { '  ', hl = theme.head },
+                            line.sep('', theme.head, theme.fill),
+                        },
+                        line.tabs().foreach(function(tab)
+                            local hl = tab.is_current() and theme.current_tab or theme.tab
+
+                            -- remove count of wins in tab with [n+] included in tab.name()
+                            local name = tab.name()
+                            local index = string.find(name, "%[%d")
+                            local tab_name = index and string.sub(name, 1, index - 1) or name
+
+                            -- indicate if any of buffers in tab have unsaved changes
+                            local modified = false
+                            local win_ids = require('tabby.module.api').get_tab_wins(tab.id)
+                            for _, win_id in ipairs(win_ids) do
+                                if pcall(vim.api.nvim_win_get_buf, win_id) then
+                                    local bufid = vim.api.nvim_win_get_buf(win_id)
+                                    if vim.api.nvim_buf_get_option(bufid, "modified") then
+                                        modified = true
+                                        break
+                                    end
+                                end
+                            end
+
+                            return {
+                                line.sep('', hl, theme.fill),
+                                tab.number(),
+                                tab_name,
+                                modified and '',
+                                tab.close_btn(''),
+                                line.sep('', hl, theme.fill),
+                                hl = hl,
+                                margin = ' ',
+                            }
+                        end),
+                        line.spacer(),
+                        {
+                            line.sep('', theme.tail, theme.fill),
+                            { '  ', hl = theme.tail },
+                        },
+                        hl = theme.fill,
+                    }
+                end,
+                -- option = {}, -- setup modules' option,
+            })
+        end,
+    },
     -- For unifying TMUX pane / VIM split navigation.
     {
         'mrjones2014/smart-splits.nvim',
@@ -438,7 +504,7 @@ require("lazy").setup({
     },
     {
         -- Displays filename on each split in floating in top right.
-        -- TODO: disable this for DAP panes?
+        -- reference: https://github.com/b0o/incline.nvim/discussions/75
         'b0o/incline.nvim',
         event = 'VeryLazy',
         keys = {
@@ -448,6 +514,26 @@ require("lazy").setup({
             require('incline').setup({
                 hide = {
                     cursorline = 'focused_win',
+                    only_win = true,
+                },
+                window = {
+                    margin = {
+                        horizontal = 0,
+                        vertical = 1,
+                    },
+                    overlap = {
+                        borders = true,
+                        statusline = false,
+                        tabline = true,
+                        winbar = false
+                    },
+                    padding = 1,
+                    padding_char = " ",
+                    placement = {
+                        horizontal = "right",
+                        vertical = "top"
+                    },
+                    width = "fit",
                 },
                 ignore = {
                     unlisted_buffers = false,
@@ -901,6 +987,7 @@ require("lazy").setup({
     },
     -- Autocompletion.
     {
+        -- TODO: try blink cmp instead?
         "hrsh7th/nvim-cmp",
         event = "InsertEnter",
         dependencies = {
