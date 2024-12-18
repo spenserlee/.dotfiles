@@ -29,7 +29,6 @@ vim.cmd[[
 ]]
 
 local function generate_and_execute_sed_command(args)
-    -- Get the current visual selection range
     local start_line = vim.fn.line("'<")
     local end_line = vim.fn.line("'>")
 
@@ -80,34 +79,10 @@ require("lazy").setup({
         disable = true,
         lazy = false,
         priority = 1000,
-        config = function()
-            -- require("gruvbox").setup({
-            --     italic = {
-            --         strings = false,
-            --         comments = false,
-            --         operators = false,
-            --         folds = false,
-            --     }
-            -- })
-            -- vim.cmd("colorscheme gruvbox")
+        init = function()
+            vim.cmd("colorscheme gruvbox")
         end
     },
-    -- TODO: how to configure multiple colorschemes and switch between them nicely?
-    -- {
-    --     https://gist.github.com/sainnhe/587a1bba123cb25a3ed83ced613c20c0
-    --     "sainnhe/gruvbox-material",
-    --     lazy = false,
-    --     priority = 1000,
-    --     config = function()
-    --         vim.cmd([[
-    --             set background=dark
-    --             let g:gruvbox_material_background = "medium"
-    --             let g:gruvbox_material_foreground = "medium"
-    --             let g:gruvbox_material_better_performance = 1
-    --             colorscheme gruvbox-material
-    --         ]])
-    --     end
-    -- },
     {
         "neanias/everforest-nvim",
         version = false,
@@ -130,6 +105,7 @@ require("lazy").setup({
         end,
     },
     {
+        -- Diplay hexcode colours directly in editor.
         "norcalli/nvim-colorizer.lua",
         cmd = {
             "ColorizerAttachToBuffer",
@@ -137,6 +113,8 @@ require("lazy").setup({
         },
     },
     {
+        -- Trailing cursor
+        -- :SmearCursorToggle
         "sphamba/smear-cursor.nvim",
         opts = {
             smear_between_buffers = true,
@@ -180,6 +158,7 @@ require("lazy").setup({
         end
     },
     {
+        -- Nicer tabs.
         'nanozuki/tabby.nvim',
         dependencies = 'nvim-tree/nvim-web-devicons',
         config = function()
@@ -196,13 +175,14 @@ require("lazy").setup({
                 line = function(line)
                     return {
                         {
-                            -- TODO: cleanup color situation...
+                            -- TODO: need better way to refer to current colorscheme values instead of manual hardcode
                             { '  ', hl = { fg = '#7FBBB3', bg = '#414B50' } },
-                            -- { '  ', hl = theme.head },
                             line.sep('', theme.head, theme.fill),
                         },
                         line.tabs().foreach(function(tab)
                             local hl = tab.is_current() and theme.current_tab or theme.tab
+                            local fg = (hl == theme.tab and '#9da9a0') or (hl == theme.current_tab and '#1e2327')
+                            local bg = (hl == theme.tab and '#414b50') or (hl == theme.current_tab and '#a7c080')
 
                             -- remove count of wins in tab with [n+] included in tab.name()
                             local name = tab.name()
@@ -210,22 +190,21 @@ require("lazy").setup({
                             local tab_name = index and string.sub(name, 1, index - 1) or name
 
                             -- indicate if any of buffers in tab have unsaved changes
-                            local modified = false
-                            local win_ids = require('tabby.module.api').get_tab_wins(tab.id)
-                            for _, win_id in ipairs(win_ids) do
-                                if pcall(vim.api.nvim_win_get_buf, win_id) then
-                                    local bufid = vim.api.nvim_win_get_buf(win_id)
-                                    if vim.api.nvim_buf_get_option(bufid, "modified") then
-                                        modified = true
-                                        break
-                                    end
-                                end
+                            local win_is_modified = function(win)
+                                return vim.bo[win.buf().id].modified
                             end
+                            local modified = false
+                            tab.wins().foreach(function(win)
+                                if win_is_modified(win) then
+                                    modified = true
+                                    return
+                                end
+                            end)
 
                             return {
                                 line.sep('', hl, theme.fill),
                                 tab.number(),
-                                tab_name,
+                                { tab_name, hl = modified and { fg = fg, bg = bg, style = 'italic' } or hl },
                                 modified and '',
                                 tab.close_btn(''),
                                 line.sep('', hl, theme.fill),
@@ -241,12 +220,11 @@ require("lazy").setup({
                         hl = theme.fill,
                     }
                 end,
-                -- option = {}, -- setup modules' option,
             })
         end,
     },
-    -- For unifying TMUX pane / VIM split navigation.
     {
+        -- For unifying TMUX pane / VIM split navigation.
         'mrjones2014/smart-splits.nvim',
         dependencies = {
             {
@@ -312,6 +290,8 @@ require("lazy").setup({
     {
         -- File explorer as regular buffer.
         "stevearc/oil.nvim",
+        ---@module 'oil'
+        ---@type oil.SetupOpts
         dependencies = { "nvim-tree/nvim-web-devicons" },
         opts = {
             columns = {
@@ -323,17 +303,26 @@ require("lazy").setup({
             view_options = {
                 show_hidden = true,
             },
+            float = {
+                -- Padding around the floating window
+                padding = 10,
+                max_width = 0,
+                max_height = 0,
+                border = "rounded",
+                win_options = {
+                    winblend = 0,
+                },
+            },
+            keymaps = {
+                ["<C-h>"] = { "actions.toggle_hidden", mode = "n" },
+                ["<Esc>"] = { "actions.close", mode = "n" },
+            }
         },
-        -- TODO: find out why it breaks netrw / submit issue
-        init = function()
-            -- disable netrw for now
-            vim.g.loaded_netrwPlugin = 1
-            vim.g.loaded_netrw = 1
-            vim.keymap.set("n", "<leader>o", vim.cmd.Oil, { desc = "Open Oil in a buffer" })
-            vim.keymap.set("n", "<leader>O", "<cmd>Oil --float<CR>", { desc = "Open Oil in a floating window" })
-        end
+        keys = {
+            {"<leader>e", vim.cmd.Oil, desc = "Open Oil in a buffer"},
+            {"<leader>E", "<cmd>Oil --float<CR>", desc = "Open Oil in a floating window"},
+        },
     },
-
     -- Organize your life.
     --      <leader>oa = open agenda file.
     --      <leader>oc = open notes file (to be re-filed).
@@ -458,15 +447,6 @@ require("lazy").setup({
             })
         end
     },
-    -- {
-    --     VCS independent gutter display
-    --     TODO: the gutter display is kinda borked, skip it for now
-    --     "mhinz/vim-signify",
-    --     init = function()
-    --        -- decrease time to swap file write so git gutter updates sooner
-    --         vim.api.nvim_set_option("updatetime", 300)
-    --     end,
-    -- },
     {
         -- Multiple search highlights - great for log analysis.
         --      f<enter>   - add higlight for word/selection
@@ -651,7 +631,6 @@ require("lazy").setup({
     },
     {
         -- Highlight word under cursor.
-        -- TODO: revisit RRethy/vim-illuminate as an alternative later
         'tzachar/local-highlight.nvim',
         config = function()
             require('local-highlight').setup({
@@ -676,6 +655,7 @@ require("lazy").setup({
             "MasonLog",
         },
         dependencies = {
+            "neovim/nvim-lspconfig",
             "williamboman/mason-lspconfig.nvim",
             "WhoIsSethDaniel/mason-tool-installer.nvim",
             "mfussenegger/nvim-dap",
@@ -732,6 +712,100 @@ require("lazy").setup({
                     "cpptools",
                     -- "debugpy", -- Python
                 },
+            })
+
+            -- See :help mason-lspconfig-dynamic-server-setup
+            local lspconfig = require("lspconfig")
+            local blink = require('blink.cmp')
+            mason_lspconfig.setup_handlers({
+                function(server_name) -- default handler
+                    local capabilities =  blink.get_lsp_capabilities()
+                    -- See :help lspconfig-setup
+                    lspconfig[server_name].setup({
+                        capabilities = capabilities
+                    })
+                end,
+                -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
+                ["rust_analyzer"] = function() end,
+                ["lua_ls"] = function()
+                    local capabilities =  blink.get_lsp_capabilities()
+                    lspconfig.lua_ls.setup({
+                        capabilities = capabilities,
+                        settings = {
+                            Lua = {
+                                library = {
+                                    checkThirdParty = false,
+                                },
+                                diagnostics = {
+                                    globals = { "vim" },
+                                },
+                                telemetry = {
+                                    enable = false,
+                                },
+                            },
+                        },
+                    })
+                end,
+                ["pylsp"] = function()
+                    local capabilities =  blink.get_lsp_capabilities()
+                    -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
+                    lspconfig.pylsp.setup({
+                        capabilities = capabilities,
+                        settings = {
+                            pylsp = {
+                                plugins = {
+                                    pycodestyle = {
+                                        -- ignore = {'W391'},
+                                        maxLineLength = 100,
+                                    },
+                                },
+                            },
+                        },
+                    })
+                end,
+            })
+
+            -- See :help mason-lspconfig-dynamic-server-setup
+            local lspconfig = require("lspconfig")
+            mason_lspconfig.setup_handlers({
+                function(server_name) -- default handler
+                    -- See :help lspconfig-setup
+                    lspconfig[server_name].setup({})
+                end,
+                -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
+                ["rust_analyzer"] = function () end,
+                ["lua_ls"] = function ()
+                    lspconfig.lua_ls.setup {
+                        settings = {
+                            Lua = {
+                                library = {
+                                    checkThirdParty = false,
+                                },
+                                diagnostics = {
+                                    globals = { "vim" },
+                                },
+                                telemetry = {
+                                    enable = false,
+                                },
+                            },
+                        },
+                    }
+                end,
+                ["pylsp"] = function ()
+                    -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
+                    lspconfig.pylsp.setup {
+                        settings = {
+                            pylsp = {
+                                plugins = {
+                                    pycodestyle = {
+                                        -- ignore = {'W391'},
+                                        maxLineLength = 100
+                                    }
+                                }
+                            }
+                        }
+                    }
+                end,
             })
         end,
     },
@@ -825,19 +899,15 @@ require("lazy").setup({
                     require("neodev").setup()
                 end
             },
+            {
+                "saghen/blink.cmp"
+            }
         },
-        -- TODO: keep it simple and put the config here. Probably need to ensure this is
-        -- available before mason-lspconfig setup can run...
-        -- config = function()
-        --     require("lspconfig").setup({
-        --         servers = {
-        --             rust_analyzer = {},
-        --         },
-        --     })
-        -- end,
     },
     {
         -- Solves the terrible native lsp inlay hint behaviour.
+        -- * useful command to toggle inlay hint native display
+        --   :lua require("lsp-endhints").toggle()
         "chrisgrieser/nvim-lsp-endhints",
         event = "LspAttach",
         opts = {}, -- required, even if empty
@@ -849,8 +919,6 @@ require("lazy").setup({
                 },
             })
         end
-        -- useful command to toggle inlay hint native display
-        -- require("lsp-endhints").toggle()
     },
     {
         -- Provide much better syntax highlighting + dynamic code presentations
@@ -985,120 +1053,82 @@ require("lazy").setup({
             },
         },
     },
-    -- Autocompletion.
     {
-        -- TODO: try blink cmp instead?
-        "hrsh7th/nvim-cmp",
-        event = "InsertEnter",
+        'saghen/blink.compat',
+        version = '*',
+        lazy = true,
+        opts = {},
+    },
+    {
+        -- Autocompletion.
+        'saghen/blink.cmp',
         dependencies = {
-            "hrsh7th/cmp-buffer",
-            "hrsh7th/cmp-path",
-            "hrsh7th/cmp-nvim-lsp",
-            'hrsh7th/cmp-nvim-lsp-signature-help',
-            {
-                "L3MON4D3/LuaSnip",
-                version = "v2.*",
-                -- install jsregexp (optional!).
-                build = "make install_jsregexp",
-                dependencies = { "rafamadriz/friendly-snippets" },
-            },
-            'saadparwaiz1/cmp_luasnip',
-            "onsails/lspkind.nvim", -- vs-code like pictograms
+            {'rafamadriz/friendly-snippets'},
+            { 'L3MON4D3/LuaSnip', version = 'v2.*' },
+            { 'dmitmel/cmp-digraphs' },
         },
-        config = function()
-            local cmp = require("cmp")
-            local lspkind = require("lspkind")
-            local luasnip = require("luasnip")
-
-            require("luasnip.loaders.from_vscode").lazy_load()
-
-            local select_opts = {behavior = cmp.SelectBehavior.Select}
-            local has_words_before = function()
-                unpack = unpack or table.unpack
-                local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-                return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
-            end
-
-            cmp.setup({
-                snippet = {
-                    expand = function(args)
-                        luasnip.lsp_expand(args.body)
-                    end,
+        version = 'v0.*',
+        ---@module 'blink.cmp'
+        ---@type blink.cmp.Config
+        opts = {
+            keymap = {
+                ['<Tab>'] = { 'snippet_forward', 'select_next', 'fallback' }, -- snippets
+                ['<S-Tab>'] = { 'snippet_backward', 'select_prev', 'fallback' },
+                ['<C-y>'] = { 'accept', 'fallback' },
+                ['<CR>'] = { 'accept', 'fallback' },
+                ['<C-l>'] = { 'show', 'hide', 'fallback' },
+                ['<C-e>'] = { 'cancel', 'fallback' },
+                ['<C-Space>'] = { 'show_documentation', 'hide_documentation', 'fallback' },
+                ['<C-f>'] = { 'scroll_documentation_down', 'fallback' },
+                ['<C-b>'] = { 'scroll_documentation_up', 'fallback' },
+            },
+            completion = {
+                list = { selection = 'auto_insert' },
+                accept = { auto_brackets = { enabled = false } },
+                documentation = {
+                    auto_show = true,
+                    auto_show_delay_ms = 0,
                 },
-                sources = cmp.config.sources({
-                    { name = "nvim_lsp" },
-                    { name = 'nvim_lsp_signature_help' },
-                    { name = 'orgmode' },
-                    { name = "luasnip", keyword_length = 4 },
-
-                    -- TODO: until this issue is addressed I have to disable it.
-                    -- https://github.com/hrsh7th/cmp-buffer/issues/75
-                    -- { name = "buffer", keyword_length = 5 },
-                    { name = "path" },
-                }),
-                preselect = cmp.PreselectMode.None,
-                completion = {
-                    completeopt = 'menu,menuone,preview',
+                menu = {
+                    draw = { columns = { { 'label', 'label_description', gap = 1 }, { 'kind' } } },
                 },
-                window = {
-                    completion = {
-                        winhighlight = "Normal:Pmenu,FloatBorder:Pmenu,Search:None",
-                        col_offset = -3,
-                        side_padding = 0,
-                        border = 'rounded',
+            },
+            appearance = {
+                -- Sets the fallback highlight groups to nvim-cmp's highlight groups
+                -- Useful for when your theme doesn't support blink.cmp
+                -- will be removed in a future release
+                use_nvim_cmp_as_default = true,
+                nerd_font_variant = 'mono'
+            },
+            snippets = {
+                expand = function(snippet) require('luasnip').lsp_expand(snippet) end,
+                active = function(filter)
+                    if filter and filter.direction then
+                        return require('luasnip').jumpable(filter.direction)
+                    end
+                    return require('luasnip').in_snippet()
+                end,
+                jump = function(direction) require('luasnip').jump(direction) end,
+            },
+            -- default list of enabled providers defined so that you can extend it
+            -- elsewhere in your config, without redefining it, via `opts_extend`
+            sources = {
+                default = { 'lsp', 'path', 'luasnip', 'snippets', 'buffer', 'digraphs' },
+                -- optionally disable cmdline completions
+                -- cmdline = {},
+            },
+            providers = {
+                digraphs = {
+                    name = 'digraphs',
+                    module = 'blink.compat.source',
+                    score_offset = -3,
+                    opts = {
+                        cache_digraphs_on_start = true,
                     },
-                    documentation = {
-                        border = 'rounded',
-                    }
                 },
-                formatting = {
-                    expandable_indicator = false,
-                    fields = { "kind", "abbr", "menu" },
-                    format = function(entry, vim_item)
-                        local kind = lspkind.cmp_format({ mode = "symbol_text", maxwidth = 50 })(entry, vim_item)
-                        local strings = vim.split(kind.kind, "%s", { trimempty = true })
-                        kind.kind = " " .. (strings[1] or "") .. " "
-                        kind.menu = "    (" .. (strings[2] or "") .. ")"
-
-                        return kind
-                    end,
-                },
-                mapping = cmp.mapping.preset.insert({
-                    ["<Up>"] = cmp.mapping.select_prev_item(select_opts),
-                    ["<Down>"] = cmp.mapping.select_next_item(select_opts),
-                    ["<C-d>"] = cmp.mapping.scroll_docs(-4),
-                    ["<C-f>"] = cmp.mapping.scroll_docs(4),
-                    ["<C-y"] = cmp.mapping.complete(),
-                    ["<C-e>"] = cmp.mapping.close(),
-                    ['<CR>'] = cmp.mapping.confirm({ select = true }),
-                    ["<Tab>"] = cmp.mapping(function(fallback)
-                        if cmp.visible() then
-                            cmp.select_next_item(select_opts)
-                        elseif luasnip.locally_jumpable(1) then
-                            luasnip.jump(1)
-                        elseif has_words_before() then
-                            cmp.complete()
-                        else
-                            fallback()
-                        end
-                    end, { "i", "s" }),
-                    ["<S-Tab>"] = cmp.mapping(function(fallback)
-                        if cmp.visible() then
-                            cmp.select_prev_item(select_opts)
-                        elseif luasnip.locally_jumpable(-1) then
-                            luasnip.jump(-1)
-                        else
-                            fallback()
-                        end
-                    end, { "i", "s" }),
-                }),
-            })
-
-            vim.cmd([[
-              set completeopt=menuone,noinsert,noselect
-              highlight! default link CmpItemKind CmpItemMenuDefault
-            ]])
-        end,
+            },
+        },
+        opts_extend = { "sources.default" }
     },
     {
         -- Interactive debugging in-editor.
@@ -1138,7 +1168,7 @@ require("lazy").setup({
                             size = 0.25
                         } },
                         position = "left",
-                        size = 70
+                        size = 80
                     }, {
                         elements = { {
                             id = "repl",
@@ -1298,9 +1328,8 @@ require("lazy").setup({
 
         end,
     },
-
-    -- LLM coding
     {
+        -- LLM prompting.
         'spenserlee/dingllm.nvim',
         dependencies = { 'nvim-lua/plenary.nvim' },
         config = function()
@@ -1471,50 +1500,3 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end
 })
 
----
--- LSP servers
----
--- See :help mason-lspconfig-dynamic-server-setup
-
-local lspconfig = require("lspconfig")
-
-require("mason-lspconfig").setup_handlers({
-    function(server)
-        -- See :help lspconfig-setup
-        lspconfig[server].setup({})
-    end,
-    -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
-    ["rust_analyzer"] = function () end,
-    ["lua_ls"] = function ()
-        lspconfig.lua_ls.setup {
-            settings = {
-                Lua = {
-                    library = {
-                        checkThirdParty = false,
-                    },
-                    diagnostics = {
-                        globals = { "vim" },
-                    },
-                    telemetry = {
-                        enable = false,
-                    },
-                },
-            },
-        }
-    end,
-    ["pylsp"] = function ()
-        -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
-        lspconfig.pylsp.setup {
-            settings = {
-                pylsp = {
-                    plugins = {
-                        pycodestyle = {
-                            -- ignore = {'W391'},
-                            maxLineLength = 100
-                        }
-                    }
-                }
-            }
-        }
-    end,
-})
