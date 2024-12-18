@@ -107,10 +107,6 @@ nnoremap <leader>C :%s///gn<CR>
 nnoremap ]] ]]zt
 nnoremap [[ [[zt
 
-" TAB for quick buffer navigation
-" nnoremap <TAB> :bnext<CR>
-" nnoremap <S-TAB> :bprevious<CR>
-
 " Close this buffer, but don't close the split or window
 " noremap <leader>d :bprevious\|bdelete #<CR>
 nnoremap <leader>d :bdelete<CR>
@@ -133,8 +129,3 @@ nnoremap <M-k> <C-W>k
 nnoremap <M-h> <C-W>h
 nnoremap <M-l> <C-W>l
 
-" window resizing
-" nnoremap <C-j> :resize -2<CR>
-" nnoremap <C-k> :resize +2<CR>
-" nnoremap <C-h> :vertical resize -2<CR>
-" nnoremap <C-l> :vertical resize +2<CR>
