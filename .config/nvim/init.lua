@@ -273,6 +273,27 @@ require("lazy").setup({
     {
         -- The greatest search plugin ever!!!
         "ibhagwan/fzf-lua",
+        opts = {
+            oldfiles = {
+                include_current_session = true,
+            },
+            previewers = {
+                builtin = {
+                    syntax_limit_b = 1024 * 200, -- 100KB
+                },
+            },
+            grep = {
+                -- TODO: idk about this but I saw it online
+                --
+                -- Ex: Find all occurrences of "enable" but only in the "plugins" directory.
+                -- With this change, I can sort of get the same behaviour in live_grep.
+                -- ex: > enable --*/plugins/*
+                -- I still find this a bit cumbersome. There's probably a better way of doing this.
+                rg_glob = true, -- enable glob parsing
+                glob_flag = "--iglob", -- case insensitive globs
+                glob_separator = "%s%-%-", -- query separator pattern (lua): ' --'
+            },
+        },
         keys = {
             {"<C-p>", "<cmd>FzfLua git_files<cr>", desc = "FZF git files"},
             {"<leader>ff", "<cmd>FzfLua files<cr>", desc = "FZF files"},
@@ -1022,6 +1043,7 @@ require("lazy").setup({
                     "markdown_inline",
                     "python",
                     "meson",
+                    "zig",
                 },
                 with_sync = true,
                 -- Install parsers synchronously (only applied to `ensure_installed`)
