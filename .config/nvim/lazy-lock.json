@@ -50,5 +50,6 @@
   "vim-fugitive": { "branch": "master", "commit": "174230d6a7f2df94705a7ffd8d5413e27ec10a80" },
   "vim-highlighter": { "branch": "main", "commit": "04b56c5bd44f1456e39dfee032ccf29bfaa9a587" },
   "vim-obsession": { "branch": "master", "commit": "ed9dfc7c2cc917ace8b24f4f9f80a91e05614b63" },
-  "zen-mode.nvim": { "branch": "main", "commit": "863f150ca321b3dd8aa1a2b69b5f411a220e144f" }
+  "zen-mode.nvim": { "branch": "main", "commit": "863f150ca321b3dd8aa1a2b69b5f411a220e144f" },
+  "zig.vim": { "branch": "master", "commit": "f023e86b042c0d5bef68b9f0651144a6bf6d642e" }
 }
