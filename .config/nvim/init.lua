@@ -462,6 +462,7 @@ require("lazy").setup({
             {"<M-N>", "<cmd>Hi{<cr>", desc = "Highlighter prev recent"},
             {"<leader>}", "<cmd>Hi><cr>", desc = "Highlighter next any"},
             {"<leader>{", "<cmd>Hi<<cr>", desc = "Highlighter prev any"},
+            {"<leader>H", "<cmd>Hi clear<<cr>", desc = "Highlighter prev any"},
         },
         init = function()
             vim.cmd([[
@@ -540,6 +541,15 @@ require("lazy").setup({
                     end,
                 },
             })
+        end,
+    },
+    {
+        -- Scroll past top for a screen-centered view.
+        'nullromo/go-up.nvim',
+        opts = {}, -- specify options here
+        config = function(_, opts)
+            local goUp = require('go-up')
+            goUp.setup(opts)
         end,
     },
     {
@@ -642,6 +652,58 @@ require("lazy").setup({
 
             vim.api.nvim_set_option("updatetime", 400)
         end
+    },
+    {
+        'saghen/blink.compat',
+        version = '*',
+        lazy = true,
+        opts = {},
+    },
+    {
+        -- Autocompletion.
+        'saghen/blink.cmp',
+        dependencies = {
+            {'rafamadriz/friendly-snippets'},
+            { 'L3MON4D3/LuaSnip', version = 'v2.*' },
+        },
+        version = '*',
+        ---@module 'blink.cmp'
+        ---@type blink.cmp.Config
+        opts = {
+            keymap = {
+                ['<Tab>'] = { 'snippet_forward', 'select_next', 'fallback' }, -- snippets
+                ['<S-Tab>'] = { 'snippet_backward', 'select_prev', 'fallback' },
+                ['<C-y>'] = { 'accept', 'fallback' },
+                ['<CR>'] = { 'accept', 'fallback' },
+                ['<C-l>'] = { 'show', 'hide', 'fallback' },
+                ['<C-e>'] = { 'cancel', 'fallback' },
+                ['<C-Space>'] = { 'show_documentation', 'hide_documentation', 'fallback' },
+                ['<C-f>'] = { 'scroll_documentation_down', 'fallback' },
+                ['<C-b>'] = { 'scroll_documentation_up', 'fallback' },
+            },
+            completion = {
+                list = { selection = { preselect = false, auto_insert = true } },
+                accept = { auto_brackets = { enabled = false } },
+                documentation = {
+                    auto_show = true,
+                    auto_show_delay_ms = 0,
+                },
+                menu = {
+                    draw = { columns = { { 'label', 'label_description', gap = 1 }, { 'kind' } } },
+                },
+            },
+            appearance = {
+                use_nvim_cmp_as_default = true,
+                nerd_font_variant = 'mono'
+            },
+            snippets = {
+                preset = 'luasnip',
+            },
+            sources = {
+                default = { 'lsp', 'path', 'snippets', 'buffer' },
+            },
+        },
+        opts_extend = { "sources.default" }
     },
     {
         -- Package manager for Neovim, installs LSP/DAP/Lint servers automatically.
@@ -901,7 +963,7 @@ require("lazy").setup({
             },
             {
                 "saghen/blink.cmp"
-            }
+            },
         },
     },
     {
@@ -1001,6 +1063,7 @@ require("lazy").setup({
                 vim.opt.foldlevel = 99
                 vim.opt.foldtext = ""
                 vim.opt.foldnestmax = 4
+                vim.opt.foldlevelstart = 99
 
                 -- Function to check if LSP provides folding and set it up
                 local function setup_lsp_folding(client, bufnr)
@@ -1054,83 +1117,6 @@ require("lazy").setup({
         },
     },
     {
-        'saghen/blink.compat',
-        version = '*',
-        lazy = true,
-        opts = {},
-    },
-    {
-        -- Autocompletion.
-        'saghen/blink.cmp',
-        dependencies = {
-            {'rafamadriz/friendly-snippets'},
-            { 'L3MON4D3/LuaSnip', version = 'v2.*' },
-            { 'dmitmel/cmp-digraphs' },
-        },
-        version = 'v0.*',
-        ---@module 'blink.cmp'
-        ---@type blink.cmp.Config
-        opts = {
-            keymap = {
-                ['<Tab>'] = { 'snippet_forward', 'select_next', 'fallback' }, -- snippets
-                ['<S-Tab>'] = { 'snippet_backward', 'select_prev', 'fallback' },
-                ['<C-y>'] = { 'accept', 'fallback' },
-                ['<CR>'] = { 'accept', 'fallback' },
-                ['<C-l>'] = { 'show', 'hide', 'fallback' },
-                ['<C-e>'] = { 'cancel', 'fallback' },
-                ['<C-Space>'] = { 'show_documentation', 'hide_documentation', 'fallback' },
-                ['<C-f>'] = { 'scroll_documentation_down', 'fallback' },
-                ['<C-b>'] = { 'scroll_documentation_up', 'fallback' },
-            },
-            completion = {
-                list = { selection = 'auto_insert' },
-                accept = { auto_brackets = { enabled = false } },
-                documentation = {
-                    auto_show = true,
-                    auto_show_delay_ms = 0,
-                },
-                menu = {
-                    draw = { columns = { { 'label', 'label_description', gap = 1 }, { 'kind' } } },
-                },
-            },
-            appearance = {
-                -- Sets the fallback highlight groups to nvim-cmp's highlight groups
-                -- Useful for when your theme doesn't support blink.cmp
-                -- will be removed in a future release
-                use_nvim_cmp_as_default = true,
-                nerd_font_variant = 'mono'
-            },
-            snippets = {
-                expand = function(snippet) require('luasnip').lsp_expand(snippet) end,
-                active = function(filter)
-                    if filter and filter.direction then
-                        return require('luasnip').jumpable(filter.direction)
-                    end
-                    return require('luasnip').in_snippet()
-                end,
-                jump = function(direction) require('luasnip').jump(direction) end,
-            },
-            -- default list of enabled providers defined so that you can extend it
-            -- elsewhere in your config, without redefining it, via `opts_extend`
-            sources = {
-                default = { 'lsp', 'path', 'luasnip', 'snippets', 'buffer', 'digraphs' },
-                -- optionally disable cmdline completions
-                -- cmdline = {},
-            },
-            providers = {
-                digraphs = {
-                    name = 'digraphs',
-                    module = 'blink.compat.source',
-                    score_offset = -3,
-                    opts = {
-                        cache_digraphs_on_start = true,
-                    },
-                },
-            },
-        },
-        opts_extend = { "sources.default" }
-    },
-    {
         -- Interactive debugging in-editor.
         --      <leader>b    - set breakpoint
         --      <leader>B    - set conditional breakpoint
@@ -1148,6 +1134,8 @@ require("lazy").setup({
         -- NOTE: you can execute GDB commands in the DAP-REPL window with `-exec` prefix
         -- -exec p/x cur
         -- $2 = 0x7fffd96ef052
+        -- -exec x /s 0x7fffffffbf90
+        -- 0x7fffffffbf90: "PUT /testcontainer1/iiiiiiii@!~`#$%^一&&()_+;'.,OOOOOO.docx?_=1734978413389 HTTP/1.1"
         "mfussenegger/nvim-dap",
         dependencies = {
             {
@@ -1488,7 +1476,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         bufmap("n", "go", "<cmd>lua vim.lsp.buf.type_definition()<cr>")
         -- bufmap("n", "gr", "<cmd>lua vim.lsp.buf.references()<cr>")
         bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>")
-        bufmap("n", "<leader>H", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
+        -- bufmap("n", "<leader>H", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
         bufmap("n", "<F9>", "<cmd>lua vim.lsp.buf.rename()<cr>")
         bufmap({"n", "x"}, "<F12>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
         bufmap("n", "gl", "<cmd>lua vim.diagnostic.open_float()<cr>")

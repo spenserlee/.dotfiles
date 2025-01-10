@@ -97,7 +97,7 @@ nnoremap <silent> <expr> k (v:count == 0 ? 'gk' : 'k')
 nnoremap <silent> <expr> j (v:count == 0 ? 'gj' : 'j')
 
 " Leader+h clears search highlighting
-map <silent> <Leader>h :noh<CR>:Hi clear<CR>
+map <silent> <Leader>h :noh<CR>
 
 " Count occurrences of previous search
 " https://vi.stackexchange.com/a/100
