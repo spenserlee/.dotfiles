@@ -1278,7 +1278,7 @@ require("lazy").setup({
 
             dap.configurations.cpp = {
                 {
-                    name = "Launch file",
+                    name = "Launch C/C++",
                     type = "cppdbg",
                     request = "launch",
                     program = function()
@@ -1305,7 +1305,7 @@ require("lazy").setup({
 
             dap.configurations.rust = {
                 {
-                    name = "Launch",
+                    name = "Launch Rust",
                     type = "codelldb",
                     request = "launch",
                     program = function()
@@ -1336,6 +1336,22 @@ require("lazy").setup({
                 }
             }
 
+            dap.configurations.zig = {
+                {
+                    name = "Launch Zig Program",
+                    type = "codelldb",
+                    request = "launch",
+                    program = function()
+                        return vim.fn.input('Path to Zig executable: ', vim.fn.getcwd() .. '/', 'file')
+                    end,
+                    cwd = '${workspaceFolder}',
+                    stopAtEntry = true,
+                    args = function()
+                        local input = vim.fn.input('Program arguments: ')
+                        return vim.split(input, " ")
+                    end,
+                }
+            }
         end,
     },
     {
