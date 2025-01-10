@@ -71,6 +71,8 @@ vim.api.nvim_create_user_command(
 -- Duplicate a line and comment out the first line
 vim.keymap.set('n', 'yc', 'yy<cmd>normal gcc<CR>p')
 
+vim.g.zig_syntax_disable = true
+
 -- Plugins
 require("lazy").setup({
     {
@@ -846,6 +848,18 @@ require("lazy").setup({
                         },
                     })
                 end,
+                ["zls"] = function()
+                    local capabilities =  blink.get_lsp_capabilities()
+                    lspconfig.zls.setup({
+                        capabilities = capabilities,
+                        settings = {
+                            zls = {
+                                build_runner = "build",
+                                build_step = "check",
+                            },
+                        },
+                    })
+                end,
             })
 
             -- See :help mason-lspconfig-dynamic-server-setup
@@ -971,7 +985,12 @@ require("lazy").setup({
                 end
             end
          end
-     },
+    },
+    {
+        'ziglang/zig.vim',
+        lazy = true,
+        ft = { 'zig' }
+    },
     {
         -- Some basic default client configuration setings for NVIM LSP.
         "neovim/nvim-lspconfig",
