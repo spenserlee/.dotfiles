@@ -67,9 +67,9 @@ vim.api.nvim_create_user_command(
     }
 )
 
--- TODO: add this but for visual selection too.
--- Duplicate a line and comment out the first line
+-- Copy line/visual block then comment it out and paste below.
 vim.keymap.set('n', 'yc', 'yy<cmd>normal gcc<CR>p')
+vim.keymap.set('v', 'yc', 'y<cmd>normal gvgc<CR>o<Esc>p')
 
 vim.g.zig_syntax_disable = true
 
