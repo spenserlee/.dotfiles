@@ -69,7 +69,7 @@ vim.api.nvim_create_user_command(
 
 -- Copy line/visual block then comment it out and paste below.
 vim.keymap.set('n', 'yc', 'yy<cmd>normal gcc<CR>p')
-vim.keymap.set('v', 'yc', 'y<cmd>normal gvgc<CR>o<Esc>p')
+vim.keymap.set('v', 'Yc', 'y<cmd>normal gvgc<CR>o<Esc>p')
 
 vim.g.zig_syntax_disable = true
 
