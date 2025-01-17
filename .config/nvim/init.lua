@@ -73,6 +73,24 @@ vim.keymap.set('v', 'Yc', 'y<cmd>normal gvgc<CR>o<Esc>p')
 
 vim.g.zig_syntax_disable = true
 
+local function trim_trailing_whitespace()
+  local save_cursor = vim.fn.getpos('.')
+  local file_path = vim.api.nvim_buf_get_name(0)
+  local git_dir = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null')
+  local is_tracked = vim.fn.system('git ls-files --error-unmatch -- ' .. file_path .. ' 2>/dev/null')
+
+  if git_dir and vim.fn.trim(is_tracked) == '' then
+      -- Untracked file, trim all trailing whitespace
+      vim.cmd('%s/\\s\\+$//e')
+      vim.fn.setpos('.', save_cursor)
+  end
+end
+
+vim.api.nvim_create_autocmd('BufWritePre', {
+  callback = trim_trailing_whitespace,
+  group = vim.api.nvim_create_augroup('TrimWhitespace', { clear = true }),
+})
+
 -- Plugins
 require("lazy").setup({
     {
@@ -404,7 +422,7 @@ require("lazy").setup({
         --     :G blame             - open in-line blame of current buffer
         --     :G diff              - open split with `git diff` output
         --     :0G diff             - open full buffer to `git diff` output
-        -- 
+        --
         -- TODO: find a solution so git plugins can be utilized with bare repo
         -- workaround by invoking nvim with explicit env var:
         --   GIT_DIR=$HOME/.dotfiles GIT_WORK_TREE=$HOME nvim .config/nvim/init.lua
@@ -426,6 +444,30 @@ require("lazy").setup({
         -- Git gutter display.
         "lewis6991/gitsigns.nvim",
         config = function()
+            local function trim_trailing_whitespace_git(bufnr)
+                local gs = package.loaded.gitsigns
+                if not gs then return end -- Gitsigns not loaded, do nothing
+
+                local hunks = gs.get_hunks(bufnr)
+                if not hunks or #hunks == 0 then return end -- No hunks, do nothing
+
+                local save_cursor = vim.fn.getpos('.')
+
+                for _, hunk in ipairs(hunks) do
+                    if hunk.type == 'add' or hunk.type == 'change' then
+                        for line_num = hunk.added.start, hunk.added.start + hunk.added.count - 1 do
+                            local line = vim.fn.getline(line_num)
+                            local new_line = string.gsub(line, '%s+$', '')
+                            if new_line ~= line then
+                                vim.fn.setline(line_num, new_line)
+                            end
+                        end
+                    end
+                end
+
+                vim.fn.setpos('.', save_cursor)
+            end
+
             require("gitsigns").setup({
                 on_attach = function(bufnr)
                     local gs = package.loaded.gitsigns
@@ -466,6 +508,14 @@ require("lazy").setup({
 
                     -- Text object
                     map({'o', 'x'}, 'ih', ':<C-U>Gitsigns select_hunk<CR>')
+
+                    vim.api.nvim_create_autocmd('BufWritePre', {
+                        buffer = bufnr,
+                        callback = function()
+                            trim_trailing_whitespace_git(bufnr)
+                        end,
+                        group = vim.api.nvim_create_augroup('TrimWhitespaceGit', { clear = true }),
+                    })
                 end
             })
         end
