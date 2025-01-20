@@ -110,7 +110,8 @@ function parse_git_branch {
 }
 
 function set_prompt {
-    # local time="\[\e[34m\]\T\[\e[m\]-"
+    local top_connect=$'\\[\\e[m\\]'"┌"
+    local time="[\[\e[34m\]\T\[\e[m\]]─"   # Time in 12-hour format HH:MM:SS
     local user="\[\e[36m\]\u"
     local at="\[\e[m\]@"
     local host="\[\e[32m\]`hostname | cut -d "-" -f 3`\[\e[m\]:"
@@ -118,10 +119,26 @@ function set_prompt {
     local git_color="\[\033[31m\]"
     local git_branch='(`parse_git_branch`)'
     local git_diff='`git rev-parse 2>/dev/null && (git diff --no-ext-diff --quiet --exit-code 2> /dev/null || echo -e \*)`'
-    local prompt="\[\e[m\]$"
+    local bot_connect=$'\\[\\e[m\\]\n'"╰"
+    # local prompt="λ"
+    # local prompt="»"
+    local prompt="∙"
 
-    # export PS1="$time$user$at$host$dir$git_color$git_branch$git_diff$prompt "
-    export PS1="$user$at$host$dir$git_color$git_branch$git_diff$prompt "
+    if [ -z "$time_prompt" ] || [ $time_prompt -eq 0 ]; then
+        time_prompt=0
+        export PS1="$top_connect$user$at$host$dir$git_color$git_branch$git_diff$bot_connect$prompt "
+    else
+        export PS1="$top_connect$time$user$at$host$dir$git_color$git_branch$git_diff$bot_connect$prompt "
+    fi
+}
+
+function toggle_time_prompt {
+    if [ $time_prompt -eq 0 ]; then
+        time_prompt=1
+    else
+        time_prompt=0
+    fi
+    set_prompt
 }
 
 set_prompt
