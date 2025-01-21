@@ -127,13 +127,18 @@ function set_prompt {
     local git_color="\[\033[31m\]"
     local git_branch='(`parse_git_branch`)'
     local git_diff='`git rev-parse 2>/dev/null && (git diff --no-ext-diff --quiet --exit-code 2> /dev/null || echo -e \*)`'
-    local bot_connect=$'\\[\\e[m\\]\n'"╰"
+    local bot_connect=$'\\[\\e[m\\]\n'"└"
     # local prompt="λ"
     # local prompt="»"
     # local prompt="➤"
     # local prompt="∙"
     # local prompt="➜"
-    local prompt="✦"
+    # local prompt="✦"
+    local prompt="❱"
+    # local prompt="▶"
+    # local prompt="↠"
+    local top_connect=$'\\[\\e[m\\]'"┏"
+    local bot_connect=$'\\[\\e[m\\]\n'"┗"
 
     if [ -z "$time_prompt" ] || [ $time_prompt -eq 0 ]; then
         time_prompt=0
