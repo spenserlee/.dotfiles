@@ -118,7 +118,8 @@ function parse_git_branch {
 
 function set_prompt {
     local top_connect=$'\\[\\e[m\\]'"┌"
-    local time="[\[\e[34m\]\T\[\e[m\]]─"   # Time in 12-hour format HH:MM:SS
+    # local time="[\[\e[34m\]\T\[\e[m\]]─"   # Time in 12-hour format HH:MM:SS
+    local time="[\[\e[34m\]\t\[\e[m\]]─"   # Time in 24-hour format HH:MM:SS
     local user="\[\e[36m\]\u"
     local at="\[\e[m\]@"
     local host="\[\e[32m\]`hostname | cut -d "-" -f 3`\[\e[m\]:"
@@ -129,7 +130,10 @@ function set_prompt {
     local bot_connect=$'\\[\\e[m\\]\n'"╰"
     # local prompt="λ"
     # local prompt="»"
-    local prompt="∙"
+    # local prompt="➤"
+    # local prompt="∙"
+    # local prompt="➜"
+    local prompt="✦"
 
     if [ -z "$time_prompt" ] || [ $time_prompt -eq 0 ]; then
         time_prompt=0
