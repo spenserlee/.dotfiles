@@ -63,6 +63,9 @@ nnoremap <CR> ciw
 " ctrl+s: classic Windows save keybind
 noremap <C-s> :write<CR>
 
+" ctrl+shift+b: build program
+noremap <C-B> :make<CR>
+
 " ctrl+space: equalize splits
 " noremap <C-Space> <C-w>=
 
@@ -116,7 +119,21 @@ nnoremap R :tabprevious<CR>
 nnoremap T :tabnext<CR>
 nnoremap <leader>tn :tabnew<CR>
 nnoremap <leader>tc :tabclose<CR>
-nnoremap <leader>Z :tab split<CR>
+
+" Zoom / Restore window.
+function! s:ZoomToggle() abort
+    if exists('t:zoomed') && t:zoomed
+        execute t:zoom_winrestcmd
+        let t:zoomed = 0
+    else
+        let t:zoom_winrestcmd = winrestcmd()
+        resize
+        vertical resize
+        let t:zoomed = 1
+    endif
+endfunction
+command! ZoomToggle call s:ZoomToggle()
+nnoremap <silent> <leader>z :ZoomToggle<CR>
 
 " Let 'tl' toggle between this and the last accessed tab
 let g:lasttab = 1
