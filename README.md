@@ -75,10 +75,10 @@ git config --global core.hooksPath ~/.git-core-hooks
 ```
 * tmux (version 3.2a+ required)
 ```
-sudo apt install libevent-dev
-wget https://github.com/tmux/tmux/releases/download/3.2a/tmux-3.2a.tar.gz
-tar xf tmux-3.2a.tar.gz
-cd tmux-3.2a/
+sudo apt-get install libevent-dev libncurses-dev libevent-dev
+wget https://github.com/tmux/tmux/releases/download/3.5a/tmux-3.5a.tar.gz
+tar xf tmux-3.5a.tar.gz
+cd tmux-3.5a/
 ./configure && make
 sudo make install
 ```
@@ -117,7 +117,7 @@ curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
 ```
 * Luarocks
-```
+```bash
 # get latest release: http://luarocks.github.io/luarocks/releases
 sudo apt install build-essential libreadline-dev unzip
 

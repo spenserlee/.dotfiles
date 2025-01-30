@@ -656,7 +656,7 @@ require("lazy").setup({
             end
         },
         keys = {
-            {"<leader>z", "<cmd>ZenMode<cr>", desc = "ZenMode"},
+            {"<leader>Z", "<cmd>ZenMode<cr>", desc = "ZenMode"},
         }
     },
     {
@@ -1192,8 +1192,10 @@ require("lazy").setup({
     {
         -- Visual plugin to better display indentation level and current scope.
         "lukas-reineke/indent-blankline.nvim",
-        main= "ibl",
         event = "BufReadPost",
+        main = "ibl",
+        ---@module "ibl"
+        ---@type ibl.config
         opts = {
             -- NOTE: "scope" here refers to variable accessibitily, NOT the
             -- current cursor indentation level
@@ -1206,6 +1208,16 @@ require("lazy").setup({
                 buftypes = { "terminal", "prompt", "nofile" },
             },
         },
+    },
+    {
+        'MeanderingProgrammer/render-markdown.nvim',
+        dependencies = {
+            'nvim-treesitter/nvim-treesitter',
+            'nvim-tree/nvim-web-devicons'
+        },
+        ---@module 'render-markdown'
+        ---@type render.md.UserConfig
+        opts = {},
     },
     {
         -- Interactive debugging in-editor.
