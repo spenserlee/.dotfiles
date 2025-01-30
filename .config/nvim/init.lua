@@ -147,6 +147,9 @@ require("lazy").setup({
         dependencies = { "nvim-tree/nvim-web-devicons" },
         -- TODO: would be nice if the branch component also picked up on tags
         config = function()
+            local function build_status()
+                return vim.g.async_make_status
+            end
             require("lualine").setup({
                 sections = {
                     lualine_c = {
@@ -171,7 +174,7 @@ require("lazy").setup({
                         }
                     },
                     lualine_x = {
-                        "%{ObsessionStatus()}", "encoding", "fileformat", "filetype"
+                        { build_status }, "%{ObsessionStatus()}", "encoding", "fileformat", "filetype"
                     },
                 },
             })

@@ -63,11 +63,25 @@ nnoremap <CR> ciw
 " ctrl+s: classic Windows save keybind
 noremap <C-s> :write<CR>
 
-" ctrl+shift+b: build program
-noremap <C-B> :make<CR>
+" In-editor make defaults
+set makeprg=ips_build.sh\ -f
 
-" ctrl+space: equalize splits
-" noremap <C-Space> <C-w>=
+set errorformat=
+            \%f:%l:%c:%t:%m,
+            \%f:%l:%c:%m,
+            \%-G%.%#
+
+" Variable to store the last make arguments
+let g:last_make_args = ""
+
+if has("nvim")
+    command! -nargs=* Make execute 'let g:last_make_args = <q-args>' | lua require'async_make'.make(<q-args>)
+else
+    command! -nargs=* Make execute 'let g:last_make_args = <q-args>' | make <q-args>
+endif
+
+" ctrl+shift+b: build program with last arguments
+noremap <C-B> :execute 'Make' g:last_make_args<CR>
 
 " quickfix managment
 function! ToggleQuickfix()
