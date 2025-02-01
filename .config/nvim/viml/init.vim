@@ -66,10 +66,11 @@ noremap <C-s> :write<CR>
 " In-editor make defaults
 set makeprg=ips_build.sh\ -f
 
-set errorformat=
-            \%f:%l:%c:%t:%m,
-            \%f:%l:%c:%m,
-            \%-G%.%#
+set errorformat=%f:%l:%c:%t:%m
+set errorformat+=%f:%l:%c:%m
+set errorformat+=%f:%l:%c
+set errorformat+=%f:%s:%c
+set errorformat+=%-G%.%#
 
 " Variable to store the last make arguments
 let g:last_make_args = ""
@@ -84,6 +85,14 @@ endif
 noremap <C-B> :execute 'Make' g:last_make_args<CR>
 
 " quickfix managment
+
+" Position the (global) quickfix window at the very bottom of the window
+" (useful for making sure that it appears underneath splits)
+"
+" NOTE: Using a check here to make sure that window-specific location-lists
+" aren't effected, as they use the same `FileType` as quickfix-lists.
+autocmd FileType qf if (getwininfo(win_getid())[0].loclist != 1) | wincmd J | endif
+
 function! ToggleQuickfix()
     if empty(filter(getwininfo(), 'v:val.quickfix'))
         copen
@@ -91,13 +100,14 @@ function! ToggleQuickfix()
         cclose
     endif
 endfunction
+
 command! ClearQuickfixList cexpr []
 
 noremap <leader>q :call ToggleQuickfix()<CR>
 noremap <silent> <leader>Q :ClearQuickfixList<CR> \| :cclose<CR>
 
-noremap ]q :cnext<CR>
-noremap [q :cprev<CR>
+noremap <silent> ]q :if getqflist({'nr': '$'})['nr'] == 1 <Bar> execute 'cc 1' <Bar> else <Bar> cnext <Bar> endif<CR>
+noremap <silent> [q :if getqflist({'nr': '$'})['nr'] == 1 <Bar> execute 'cc 1' <Bar> else <Bar> cprev <Bar> endif<CR>
 
 noremap [Q :cfirst<CR>
 noremap ]Q :clast<CR>

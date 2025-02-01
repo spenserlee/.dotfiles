@@ -1,7 +1,7 @@
 local M = {}
 
 function M.make(arg)
-    local lines = {""}
+    local lines = {}
     local winnr = vim.fn.win_getid()
     local bufnr = vim.api.nvim_win_get_buf(winnr)
 
@@ -24,7 +24,6 @@ function M.make(arg)
         end
 
         if event == "exit" then
-            -- Debug the contents of 'lines' before setqflist
             bufnr = vim.api.nvim_win_get_buf(vim.fn.win_getid())
             local efm = vim.o.errorformat or vim.api.nvim_buf_get_option(bufnr, "errorformat")
 
