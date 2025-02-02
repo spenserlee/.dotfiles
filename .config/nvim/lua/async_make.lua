@@ -49,6 +49,7 @@ function M.make(arg)
                 if #qflist > 0 then
                     vim.g.async_make_status = '[' .. #qflist .. ' build alerts]'
                     vim.api.nvim_command("copen")
+                    vim.api.nvim_command("cfirst")
                 else
                     vim.api.nvim_command("cclose")
                     local elapsed = end_time - start_time
