@@ -14,12 +14,17 @@ function M.make(arg)
     local args = vim.fn.expand(arg)
     local cmd = vim.fn.expandcmd(makeprg) .. " " .. args
 
+    local start_time = os.time() + os.clock() % 1
     vim.g.async_make_status = '[Building...]'
 
     local function on_event(_, data, event)
         if event == "stdout" or event == "stderr" then
             if data then
-                vim.list_extend(lines, data)
+                for _, line in ipairs(data) do
+                    if line ~= "" then
+                        table.insert(lines, line)
+                    end
+                end
             end
         end
 
@@ -38,13 +43,34 @@ function M.make(arg)
                 vim.fn.writefile({"Error in setqflist: " .. err}, "/tmp/async_make_debug.txt", "a")
                 vim.g.async_make_status = '[setqflist error]'
             else
+                local end_time = os.time() + os.clock() % 1
                 -- If there are any items in the quickfix list, open quickfix window
                 local qflist = vim.fn.getqflist()
                 if #qflist > 0 then
+                    vim.g.async_make_status = '[' .. #qflist .. ' build alerts]'
                     vim.api.nvim_command("copen")
+                else
+                    vim.api.nvim_command("cclose")
+                    local elapsed = end_time - start_time
+                    local minutes = math.floor(elapsed / 60)
+                    local seconds = elapsed % 60
+
+                    local duration
+                    if minutes > 0 then
+                        duration = string.format("%dm %.2fs", minutes, seconds)
+                    else
+                        duration = string.format("%.2fs", seconds)
+                    end
+
+                    vim.g.async_make_status = '[Built in ' .. duration .. ']'
                 end
             end
-            vim.g.async_make_status = ''
+
+            -- clear status after 30s
+            vim.defer_fn(function()
+              vim.g.async_make_status = ''
+            end, 30000)
+
             vim.api.nvim_command("doautocmd QuickFixCmdPost")
         end
     end

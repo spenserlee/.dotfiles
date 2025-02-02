@@ -18,6 +18,8 @@ vim.opt.rtp:prepend(lazypath)
  -- Make sure to set `mapleader` before Lazy setup so your mappings are correct.
 vim.g.mapleader = " "
 
+vim.g.async_make_status = ""
+
 -- Show highlight for yanked regions
 vim.cmd[[
     augroup highlight_yank

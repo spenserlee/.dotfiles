@@ -76,9 +76,9 @@ set errorformat+=%-G%.%#
 let g:last_make_args = ""
 
 if has("nvim")
-    command! -nargs=* Make execute 'let g:last_make_args = <q-args>' | lua require'async_make'.make(<q-args>)
+    command! -nargs=* Make let g:last_make_args = <q-args> | lua require('async_make').make(<q-args>)
 else
-    command! -nargs=* Make execute 'let g:last_make_args = <q-args>' | make <q-args>
+    command! -nargs=* Make let g:last_make_args = <q-args> | make <q-args>
 endif
 
 " ctrl+shift+b: build program with last arguments
