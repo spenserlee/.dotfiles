@@ -101,33 +101,10 @@ function! ToggleQuickfix()
     endif
 endfunction
 
-" Jump to the next quickfix item, but if there’s only one, jump to item 1.
-function! QuickfixNext()
-    let qflen = get(getqflist({'nr': '$'}), 'nr', 0)
-    if qflen <= 1
-        execute 'cc 1'
-    else
-        cnext
-    endif
-endfunction
-
-" Jump to the previous quickfix item, but if there’s only one, jump to item 1.
-function! QuickfixPrev()
-    let qflen = get(getqflist({'nr': '$'}), 'nr', 0)
-    if qflen <= 1
-        execute 'cc 1'
-    else
-        cprev
-    endif
-endfunction
-
 command! ClearQuickfixList cexpr []
 
 noremap <leader>q :call ToggleQuickfix()<CR>
 noremap <silent> <leader>Q :ClearQuickfixList<CR> \| :cclose<CR>
-
-nnoremap <silent> ]q :call QuickfixNext()<CR>
-nnoremap <silent> [q :call QuickfixPrev()<CR>
 
 noremap [Q :cfirst<CR>
 noremap ]Q :clast<CR>

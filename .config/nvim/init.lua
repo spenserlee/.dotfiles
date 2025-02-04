@@ -30,6 +30,28 @@ vim.cmd[[
     augroup END
 ]]
 
+function QuickfixJump(direction)
+  local qflist = vim.fn.getqflist()
+  local total = #qflist
+  local info = vim.fn.getqflist({ idx = 0 })
+  local current = info.idx or 0
+
+  -- If there's no quickfix list or only one item, just jump to item 1.
+  if total <= 1 then
+    vim.cmd("cc 1")
+    return
+  end
+
+  -- Calculate the new index using modulo arithmetic.
+  -- Vim lists are 1-indexed so we convert to 0-index, apply the change, and convert back.
+  local new_index = ((current - 1 + direction + total) % total) + 1
+  vim.cmd("cc " .. new_index)
+end
+
+-- Set up key mappings for quickfix navigation.
+vim.api.nvim_set_keymap("n", "]q", ":lua QuickfixJump(1)<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "[q", ":lua QuickfixJump(-1)<CR>", { noremap = true, silent = true })
+
 local function generate_and_execute_sed_command(args)
     local start_line = vim.fn.line("'<")
     local end_line = vim.fn.line("'>")
