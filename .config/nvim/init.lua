@@ -31,21 +31,22 @@ vim.cmd[[
 ]]
 
 function QuickfixJump(direction)
-  local qflist = vim.fn.getqflist()
-  local total = #qflist
-  local info = vim.fn.getqflist({ idx = 0 })
-  local current = info.idx or 0
+    local info = vim.fn.getqflist({ idx = 0, items = 0 })
+    local total = #info.items
+    local current = info.idx
 
-  -- If there's no quickfix list or only one item, just jump to item 1.
-  if total <= 1 then
-    vim.cmd("cc 1")
-    return
-  end
+    if total == 0 then
+        print("Quickfix list is empty")
+        return
+    elseif total == 1 then
+        vim.cmd("cc 1")
+        vim.api.nvim_command("normal! zz")
+        return
+    end
 
-  -- Calculate the new index using modulo arithmetic.
-  -- Vim lists are 1-indexed so we convert to 0-index, apply the change, and convert back.
-  local new_index = ((current - 1 + direction + total) % total) + 1
-  vim.cmd("cc " .. new_index)
+    local new_index = ((current - 1 + direction) % total) + 1
+    vim.cmd("cc " .. new_index)
+    vim.api.nvim_command("normal! zz")
 end
 
 -- Set up key mappings for quickfix navigation.
