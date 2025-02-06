@@ -84,6 +84,12 @@ endif
 " ctrl+shift+b: build program with last arguments
 noremap <C-B> :execute 'Make' g:last_make_args<CR>
 
+" scratch buffer
+command! Scratch new | setlocal bt=nofile bh=wipe nobl noswapfile nu
+
+" messages
+command! Messages new | setlocal bt=nofile bh=wipe nobl noswapfile nu | redir => messages_output | silent messages | redir END | put =messages_output | set ft=vim
+
 " quickfix managment
 
 " Position the (global) quickfix window at the very bottom of the window
