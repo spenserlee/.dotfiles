@@ -81,8 +81,8 @@ else
     command! -nargs=* Make let g:last_make_args = <q-args> | make <q-args>
 endif
 
-" ctrl+shift+b: build program with last arguments
-noremap <C-B> :execute 'Make' g:last_make_args<CR>
+" ctrl+alt+b: build program with last arguments
+noremap <C-M-b> :execute 'Make' g:last_make_args<CR>
 
 " scratch buffer
 command! Scratch new | setlocal bt=nofile bh=wipe nobl noswapfile nu
