@@ -44,25 +44,25 @@ function M.make(arg)
                 vim.g.async_make_status = '[setqflist error]'
             else
                 local end_time = os.time() + os.clock() % 1
+                local elapsed = end_time - start_time
+                local minutes = math.floor(elapsed / 60)
+                local seconds = elapsed % 60
+
+                local duration
+                if minutes > 0 then
+                    duration = string.format("%dm %.2fs", minutes, seconds)
+                else
+                    duration = string.format("%.2fs", seconds)
+                end
+
                 -- If there are any items in the quickfix list, open quickfix window
                 local qflist = vim.fn.getqflist()
                 if #qflist > 0 then
-                    vim.g.async_make_status = '[' .. #qflist .. ' build alerts]'
+                    vim.g.async_make_status = '[' .. #qflist .. ' build alerts (' .. duration .. ')]'
                     vim.api.nvim_command("copen")
                     vim.api.nvim_command("cfirst")
                 else
                     vim.api.nvim_command("cclose")
-                    local elapsed = end_time - start_time
-                    local minutes = math.floor(elapsed / 60)
-                    local seconds = elapsed % 60
-
-                    local duration
-                    if minutes > 0 then
-                        duration = string.format("%dm %.2fs", minutes, seconds)
-                    else
-                        duration = string.format("%.2fs", seconds)
-                    end
-
                     vim.g.async_make_status = '[Built in ' .. duration .. ']'
                 end
             end
