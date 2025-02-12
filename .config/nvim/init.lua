@@ -1127,10 +1127,20 @@ require("lazy").setup({
             },
         },
         config = function()
+            -- TODO: how to suppress big error that shows up when opening ft
+            -- without a treesitter installed?
             require("nvim-treesitter.configs").setup({
                 ensure_installed = {
                     "c",
                     "cpp",
+                    "bash",
+                    "git_config",
+                    "git_rebase",
+                    "gitattributes",
+                    "gitcommit",
+                    "gitignore",
+                    "ssh_config",
+                    "diff",
                     "lua",
                     "vim",
                     "vimdoc",
