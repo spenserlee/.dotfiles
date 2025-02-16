@@ -1515,8 +1515,9 @@ require("lazy").setup({
             -- local g_model = 'gemini-1.5-pro'
 
             local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
-            local g_model = 'gemini-exp-1206'
+            -- local g_model = 'gemini-exp-1206'
             -- local g_model = 'gemini-2.0-flash-exp'
+            local g_model = 'gemini-2.0-pro-exp-02-05'
 
             local debug_path = '/tmp/dingllm_debug.log'
 
