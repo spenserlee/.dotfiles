@@ -84,8 +84,11 @@ endif
 " ctrl+alt+b: build program with last arguments
 noremap <C-M-b> :execute 'Make' g:last_make_args<CR>
 
+
+
+" TODO: it would be nice to save it to a tmp folder in case I accidentally close it.
 " scratch buffer
-command! Scratch new | setlocal bt=nofile bh=wipe nobl noswapfile nu
+command! Scratch new | setlocal bt=nofile bh=wipe nobl noswapfile nu | set wrap | setfiletype markdown
 
 " messages
 command! Messages new | setlocal bt=nofile bh=wipe nobl noswapfile nu | redir => messages_output | silent messages | redir END | put =messages_output | set ft=vim

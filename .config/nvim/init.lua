@@ -471,6 +471,7 @@ require("lazy").setup({
     {
         -- Git gutter display.
         "lewis6991/gitsigns.nvim",
+        lazy = false,
         config = function()
             local function trim_trailing_whitespace_git(bufnr)
                 local gs = package.loaded.gitsigns
@@ -546,7 +547,11 @@ require("lazy").setup({
                     })
                 end
             })
-        end
+        end,
+        keys = {
+            { '<leader>G', '<cmd>lua require"gitsigns".setqflist("all")<CR>', desc = 'Set qflist to unstaged changes' },
+        }
+
     },
     {
         -- Multiple search highlights - great for log analysis.
@@ -1146,6 +1151,7 @@ require("lazy").setup({
                     "vimdoc",
                     "query",
                     "rust",
+                    "make",
                     "markdown",
                     "markdown_inline",
                     "python",
@@ -1451,6 +1457,10 @@ require("lazy").setup({
                         table.insert(commands, 1, script_import)
 
                         return commands
+                    end,
+                    args = function()
+                        local input = vim.fn.input('Program arguments: ')
+                        return vim.split(input, " ")  -- Split the input into a list of arguments
                     end,
                 }
             }
