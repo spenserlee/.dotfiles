@@ -1157,6 +1157,7 @@ require("lazy").setup({
                     "python",
                     "meson",
                     "zig",
+                    "toml",
                 },
                 with_sync = true,
                 -- Install parsers synchronously (only applied to `ensure_installed`)

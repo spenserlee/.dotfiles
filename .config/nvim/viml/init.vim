@@ -112,6 +112,8 @@ endfunction
 
 command! ClearQuickfixList cexpr []
 
+command! -range CompareLines echo getline(<line1>) == getline(<line2>) ? 'Lines are identical' : 'Lines are different'
+
 noremap <leader>q :call ToggleQuickfix()<CR>
 noremap <silent> <leader>Q :ClearQuickfixList<CR> \| :cclose<CR>
 
