@@ -797,6 +797,10 @@ require("lazy").setup({
                 hlgroup = 'Visual',
                 cw_hlgroup = nil, -- highlight under cursor
                 insert_mode = false,
+                -- fix startup error? requires snacks.nvim
+                animate = {
+                    enabled = false,
+                }
             })
 
             vim.api.nvim_set_option("updatetime", 400)
@@ -893,6 +897,10 @@ require("lazy").setup({
                 },
             })
 
+            -- See :help mason-lspconfig-dynamic-server-setup
+            local lspconfig = require("lspconfig")
+            local blink = require('blink.cmp') -- Ensure blink.cmp is loaded if you use it
+
             mason_lspconfig.setup({
                 ensure_installed = {
                     "bashls",
@@ -900,11 +908,70 @@ require("lazy").setup({
                     "dockerls",
                     "lua_ls",
                     "pylsp",
-                    -- "rust_analyzer",
+                    -- "rust_analyzer", -- Handled by rustaceanvim
                     "yamlls",
                 },
                 -- auto-install configured servers (with lspconfig)
-                automatic_installation = true, -- not the same as ensure_installed
+                automatic_installation = true,
+                handlers = {
+                    -- Default handler for servers not explicitly listed
+                    function(server_name)
+                        local capabilities = blink.get_lsp_capabilities()
+                        lspconfig[server_name].setup({
+                            capabilities = capabilities
+                        })
+                    end,
+                    -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
+                    ["rust_analyzer"] = function() end,
+                    ["lua_ls"] = function()
+                        local capabilities = blink.get_lsp_capabilities()
+                        lspconfig.lua_ls.setup({
+                            capabilities = capabilities,
+                            settings = {
+                                Lua = {
+                                    library = {
+                                        checkThirdParty = false,
+                                    },
+                                    diagnostics = {
+                                        globals = { "vim" },
+                                    },
+                                    telemetry = {
+                                        enable = false,
+                                    },
+                                },
+                            },
+                        })
+                    end,
+                    ["pylsp"] = function()
+                        local capabilities = blink.get_lsp_capabilities()
+                        -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
+                        lspconfig.pylsp.setup({
+                            capabilities = capabilities,
+                            settings = {
+                                pylsp = {
+                                    plugins = {
+                                        pycodestyle = {
+                                            -- ignore = {'W391'},
+                                            maxLineLength = 100,
+                                        },
+                                    },
+                                },
+                            },
+                        })
+                    end,
+                    ["zls"] = function()
+                        local capabilities = blink.get_lsp_capabilities()
+                        lspconfig.zls.setup({
+                            capabilities = capabilities,
+                            settings = {
+                                zls = {
+                                    build_runner = "build",
+                                    build_step = "check",
+                                },
+                            },
+                        })
+                    end,
+                },
             })
 
             mason_tool_installer.setup({
@@ -924,119 +991,13 @@ require("lazy").setup({
                     -- "debugpy", -- Python
                 },
             })
-
-            -- See :help mason-lspconfig-dynamic-server-setup
-            local lspconfig = require("lspconfig")
-            local blink = require('blink.cmp')
-            mason_lspconfig.setup_handlers({
-                function(server_name) -- default handler
-                    local capabilities =  blink.get_lsp_capabilities()
-                    -- See :help lspconfig-setup
-                    lspconfig[server_name].setup({
-                        capabilities = capabilities
-                    })
-                end,
-                -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
-                ["rust_analyzer"] = function() end,
-                ["lua_ls"] = function()
-                    local capabilities =  blink.get_lsp_capabilities()
-                    lspconfig.lua_ls.setup({
-                        capabilities = capabilities,
-                        settings = {
-                            Lua = {
-                                library = {
-                                    checkThirdParty = false,
-                                },
-                                diagnostics = {
-                                    globals = { "vim" },
-                                },
-                                telemetry = {
-                                    enable = false,
-                                },
-                            },
-                        },
-                    })
-                end,
-                ["pylsp"] = function()
-                    local capabilities =  blink.get_lsp_capabilities()
-                    -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
-                    lspconfig.pylsp.setup({
-                        capabilities = capabilities,
-                        settings = {
-                            pylsp = {
-                                plugins = {
-                                    pycodestyle = {
-                                        -- ignore = {'W391'},
-                                        maxLineLength = 100,
-                                    },
-                                },
-                            },
-                        },
-                    })
-                end,
-                ["zls"] = function()
-                    local capabilities =  blink.get_lsp_capabilities()
-                    lspconfig.zls.setup({
-                        capabilities = capabilities,
-                        settings = {
-                            zls = {
-                                build_runner = "build",
-                                build_step = "check",
-                            },
-                        },
-                    })
-                end,
-            })
-
-            -- See :help mason-lspconfig-dynamic-server-setup
-            local lspconfig = require("lspconfig")
-            mason_lspconfig.setup_handlers({
-                function(server_name) -- default handler
-                    -- See :help lspconfig-setup
-                    lspconfig[server_name].setup({})
-                end,
-                -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
-                ["rust_analyzer"] = function () end,
-                ["lua_ls"] = function ()
-                    lspconfig.lua_ls.setup {
-                        settings = {
-                            Lua = {
-                                library = {
-                                    checkThirdParty = false,
-                                },
-                                diagnostics = {
-                                    globals = { "vim" },
-                                },
-                                telemetry = {
-                                    enable = false,
-                                },
-                            },
-                        },
-                    }
-                end,
-                ["pylsp"] = function ()
-                    -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
-                    lspconfig.pylsp.setup {
-                        settings = {
-                            pylsp = {
-                                plugins = {
-                                    pycodestyle = {
-                                        -- ignore = {'W391'},
-                                        maxLineLength = 100
-                                    }
-                                }
-                            }
-                        }
-                    }
-                end,
-            })
         end,
     },
     {
         -- Configures rust-analyzer builtin LSP client + integrates with other Rust tools.
         -- https://github.com/mrcjkb/rustaceanvim/discussions/122
         'mrcjkb/rustaceanvim',
-        version = '^5', -- Recommended
+        version = '^6', -- Recommended
         ft = { 'rust' },
         lazy = false,
         init = function()
@@ -1082,12 +1043,12 @@ require("lazy").setup({
                                 loadOutDirsFromCheck = true,
                                 runBuildScripts = true,
                             },
-                            checkOnSave = {
-                                -- default: `cargo check`
-                                command = "clippy",
-                                allFeatures = true,
-                                extraArgs = { "--no-deps" },
-                            },
+                            -- checkOnSave = {
+                            --     -- default: `cargo check`
+                            --     command = "clippy",
+                            --     allFeatures = true,
+                            --     extraArgs = { "--no-deps" },
+                            -- },
                             -- inlayHints = {
                             --     lifetimeElisionHints = {
                             --         enable = true,
@@ -1629,20 +1590,6 @@ end
 -- Toggle diagnostics display, it can be very cluttered.
 vim.api.nvim_set_keymap('n', '<leader>tt', ':call v:lua.toggle_diagnostics()<CR>', { noremap = true, silent = false })
 
-local sign = function(opts)
-    -- See :help sign_define()
-    vim.fn.sign_define(opts.name, {
-        texthl = opts.name,
-        text = opts.text,
-        numhl = ""
-    })
-end
-
-sign({name = "DiagnosticSignError", text = ""})
-sign({name = "DiagnosticSignWarn", text = ""})
-sign({name = "DiagnosticSignHint", text = "󰌵"})
-sign({name = "DiagnosticSignInfo", text = ""})
-
 -- See :help vim.diagnostic.config()
 vim.diagnostic.config({
     virtual_text = true,
@@ -1650,6 +1597,15 @@ vim.diagnostic.config({
     float = {
         border = "rounded",
         -- source = "always",
+    },
+    signs = {
+        enable = true, -- Ensure signs are enabled
+        definitions = {
+            Error = { text = "", texthl = "DiagnosticSignError" },
+            Warn = { text = "", texthl = "DiagnosticSignWarn" },
+            Info = { text = "", texthl = "DiagnosticSignInfo" },
+            Hint = { text = "󰌵", texthl = "DiagnosticSignHint" },
+        },
     },
 })
 
