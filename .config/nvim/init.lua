@@ -49,6 +49,23 @@ function QuickfixJump(direction)
     vim.api.nvim_command("normal! zz")
 end
 
+function ShowVisualCharCount()
+  local _, ls, cs = unpack(vim.fn.getpos("'<"))
+  local _, le, ce = unpack(vim.fn.getpos("'>"))
+  local lines = vim.fn.getline(ls, le)
+  if #lines == 0 then
+    print("No selection.")
+    return
+  end
+  -- Trim selection to actual visual columns
+  lines[#lines] = string.sub(lines[#lines], 1, ce)
+  lines[1] = string.sub(lines[1], cs)
+  local text = table.concat(lines, "\n")
+  print("Selection length: " .. #text .. " characters")
+end
+
+vim.api.nvim_set_keymap('v', '<leader>vc', [[:lua ShowVisualCharCount()<CR>]], { noremap = true, silent = true })
+
 -- Set up key mappings for quickfix navigation.
 vim.api.nvim_set_keymap("n", "]q", ":lua QuickfixJump(1)<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "[q", ":lua QuickfixJump(-1)<CR>", { noremap = true, silent = true })
@@ -170,36 +187,62 @@ require("lazy").setup({
         -- Status bar customization.
         "nvim-lualine/lualine.nvim",
         dependencies = { "nvim-tree/nvim-web-devicons" },
-        -- TODO: would be nice if the branch component also picked up on tags
         config = function()
             local function build_status()
                 return vim.g.async_make_status
             end
+
+            local function visual_char_count()
+                local mode = vim.fn.mode()
+                if mode ~= "v" and mode ~= "V" and mode ~= "\022" then
+                    return ""
+                end
+
+                -- get start/end of the visual selection
+                local s_pos = vim.fn.getpos("'<")
+                local e_pos = vim.fn.getpos("'>")
+                local ls, cs = s_pos[2], s_pos[3]
+                local le, ce = e_pos[2], e_pos[3]
+
+                -- grab lines and normalize to a list
+                local lines = vim.fn.getline(ls, le)
+                if type(lines) == "string" then lines = { lines } end
+
+                -- trim to the exact columns
+                lines[1]  = string.sub(lines[1],  cs)
+                lines[#lines] = string.sub(lines[#lines], 1, ce)
+
+                -- join with "\n" and count
+                local text = table.concat(lines, "\n")
+                local cnt  = #text
+
+                return string.format(" %d", cnt)
+            end
+
             require("lualine").setup({
                 sections = {
                     lualine_c = {
                         {
                             'filename',
-                            file_status = true,      -- Displays file status (readonly status, modified status)
-                            newfile_status = false,  -- Display new file status (new file means no write after created)
-                            path = 1,                -- 0: Just the filename
-                            -- 1: Relative path
-                            -- 2: Absolute path
-                            -- 3: Absolute path, with tilde as the home directory
-                            -- 4: Filename and parent dir, with tilde as the home directory
-
-                            shorting_target = 40,    -- Shortens path to leave 40 spaces in the window
-                            -- for other components. (terrible name, any suggestions?)
+                            file_status    = true,
+                            newfile_status = false,
+                            path           = 1,
+                            shorting_target = 40,
                             symbols = {
-                                modified = '[+]',      -- Text to show when the file is modified.
-                                readonly = '[-]',      -- Text to show when the file is non-modifiable or readonly.
-                                unnamed = '[No Name]', -- Text to show for unnamed buffers.
-                                newfile = '[New]',     -- Text to show for newly created file before first write
-                            }
-                        }
+                                modified = '[+]',
+                                readonly = '[-]',
+                                unnamed  = '[No Name]',
+                                newfile  = '[New]',
+                            },
+                        },
                     },
                     lualine_x = {
-                        { build_status }, "%{ObsessionStatus()}", "encoding", "fileformat", "filetype"
+                        { visual_char_count, cond = nil },
+                        { build_status },
+                        "%{ObsessionStatus()}",
+                        "encoding",
+                        "fileformat",
+                        "filetype",
                     },
                 },
             })
@@ -1158,6 +1201,7 @@ require("lazy").setup({
                     "meson",
                     "zig",
                     "toml",
+                    "tmux",
                 },
                 with_sync = true,
                 -- Install parsers synchronously (only applied to `ensure_installed`)
@@ -1339,8 +1383,7 @@ require("lazy").setup({
             -- Insert a conditional breakpoint. e.g.:
             -- :DapConditional "foo > 10"
             vim.api.nvim_create_user_command('DapConditional', function(args)
-                -- Remove surrounding quotes if present
-                local condition = args.args:match('^"(.*)"$') or args.args
+                local condition = args.args:match('^[\'"](.*)[\'"]$') or args.args
                 dap.toggle_breakpoint(condition)
             end, { nargs = 1 })
 
@@ -1348,7 +1391,12 @@ require("lazy").setup({
             vim.keymap.set("n", "<leader>b", dap.toggle_breakpoint)
             vim.keymap.set("n", "<leader>B", function()
                 local condition = vim.fn.input("Enter condition: ")
-                vim.cmd("DapConditional " .. vim.fn.shellescape(condition))
+                if condition == nil then
+                    return
+                end
+
+                local cmd_arg = string.format("%q", condition)
+                vim.cmd("DapConditional " .. cmd_arg)
             end, { desc = "Set conditional breakpoint" })
 
             -- Eval variable under cursor.
@@ -1528,7 +1576,7 @@ require("lazy").setup({
             local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
             -- local g_model = 'gemini-exp-1206'
             -- local g_model = 'gemini-2.0-flash-exp'
-            local g_model = 'gemini-2.0-pro-exp-02-05'
+            local g_model = 'gemini-2.5-flash-preview-05-20'
 
             local debug_path = '/tmp/dingllm_debug.log'
 
