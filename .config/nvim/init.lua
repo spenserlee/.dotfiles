@@ -824,7 +824,17 @@ require("lazy").setup({
         ---@type blink.cmp.Config
         opts = {
             keymap = {
-                ['<Tab>'] = { 'snippet_forward', 'select_next', 'fallback' }, -- snippets
+                ['<Tab>'] = {
+                    function(cmp)
+                        if cmp.snippet_active() then
+                            return cmp.snippet_forward()
+                        end
+                        if cmp.is_visible() then
+                            return cmp.select_next()
+                        end
+                    end,
+                    'fallback'
+                },
                 ['<S-Tab>'] = { 'snippet_backward', 'select_prev', 'fallback' },
                 ['<C-y>'] = { 'accept', 'fallback' },
                 ['<CR>'] = { 'accept', 'fallback' },

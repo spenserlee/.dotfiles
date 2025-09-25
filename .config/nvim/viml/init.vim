@@ -56,7 +56,12 @@ autocmd! BufEnter,FocusGained,InsertLeave * setlocal relativenumber
 au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 
 " --- key mappings
- 
+
+" Map Shift+Tab to outdent in insert mode
+inoremap <S-Tab> <C-D>
+
+nnoremap <silent> <leader>p :set paste! \| echo 'Paste mode ' . (&paste ? 'ENABLED' : 'DISABLED')<CR>
+
 " enter: change word under cursor with one stroke
 nnoremap <CR> ciw
 
