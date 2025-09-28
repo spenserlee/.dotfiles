@@ -50,8 +50,8 @@ function QuickfixJump(direction)
 end
 
 function ShowVisualCharCount()
-  local _, ls, cs = unpack(vim.fn.getpos("'<"))
-  local _, le, ce = unpack(vim.fn.getpos("'>"))
+  local _, ls, cs = table.unpack(vim.fn.getpos("'<"))
+  local _, le, ce = table.unpack(vim.fn.getpos("'>"))
   local lines = vim.fn.getline(ls, le)
   if #lines == 0 then
     print("No selection.")
@@ -748,6 +748,8 @@ require("lazy").setup({
         --  <b>or tag* types</b>        csth1<CR>       <h1>or tag types</h1>
         --  delete(functi*on calls)     dsf             function calls
         --
+        --  And the most useful: with visual selection |<selected>|:
+        --  local str = |some text|     S'              local str = 'some text'
         "kylechui/nvim-surround",
         version = "*", -- Use for stability; omit to use `main` branch for the latest features
         event = "VeryLazy",
@@ -807,6 +809,41 @@ require("lazy").setup({
         end
     },
     {
+        "folke/lazydev.nvim",
+        ft = "lua", -- Only load for Lua files
+        opts = {
+            library = {
+                -- Optional: Add paths for third-party libraries if needed (e.g., luv for vim.uv)
+                -- { path = "luvit-meta/library", words = { "vim%.uv" } },
+            },
+        },
+    },
+    {
+        -- Some basic default client configuration setings for NVIM LSP.
+        "neovim/nvim-lspconfig",
+        dependencies = {
+            {
+                "saghen/blink.cmp"
+            },
+        },
+    },
+    {
+        -- Solves the terrible native lsp inlay hint behaviour.
+        -- * useful command to toggle inlay hint native display
+        --   :lua require("lsp-endhints").toggle()
+        "chrisgrieser/nvim-lsp-endhints",
+        event = "LspAttach",
+        opts = {}, -- required, even if empty
+        init = function()
+            require("lsp-endhints").setup({
+                icons = {
+                    type = "=> ",
+                    parameter = "<- ",
+                },
+            })
+        end
+    },
+    {
         'saghen/blink.compat',
         version = '*',
         lazy = true,
@@ -863,7 +900,14 @@ require("lazy").setup({
                 preset = 'luasnip',
             },
             sources = {
-                default = { 'lsp', 'path', 'snippets', 'buffer' },
+                default = { 'lazydev', 'lsp', 'path', 'snippets', 'buffer' },
+                providers = {
+                    lazydev = {
+                        name = "LazyDev",
+                        module = "lazydev.integrations.blink",
+                        score_offset = 100,  -- Prioritize lazydev completions
+                    },
+                },
             },
         },
         opts_extend = { "sources.default" }
@@ -919,7 +963,7 @@ require("lazy").setup({
                     "lua_ls",
                     "pylsp",
                     -- "rust_analyzer", -- Handled by rustaceanvim
-                    "yamlls",
+                    -- "yamlls",
                 },
                 -- auto-install configured servers (with lspconfig)
                 automatic_installation = true,
@@ -933,25 +977,6 @@ require("lazy").setup({
                     end,
                     -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
                     ["rust_analyzer"] = function() end,
-                    ["lua_ls"] = function()
-                        local capabilities = blink.get_lsp_capabilities()
-                        lspconfig.lua_ls.setup({
-                            capabilities = capabilities,
-                            settings = {
-                                Lua = {
-                                    library = {
-                                        checkThirdParty = false,
-                                    },
-                                    diagnostics = {
-                                        globals = { "vim" },
-                                    },
-                                    telemetry = {
-                                        enable = false,
-                                    },
-                                },
-                            },
-                        })
-                    end,
                     ["pylsp"] = function()
                         local capabilities = blink.get_lsp_capabilities()
                         -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
@@ -1087,37 +1112,6 @@ require("lazy").setup({
         'ziglang/zig.vim',
         lazy = true,
         ft = { 'zig' }
-    },
-    {
-        -- Some basic default client configuration setings for NVIM LSP.
-        "neovim/nvim-lspconfig",
-        dependencies = {
-            {
-                "folke/neodev.nvim",  -- LSP for nvim config itself
-                config = function()
-                    require("neodev").setup()
-                end
-            },
-            {
-                "saghen/blink.cmp"
-            },
-        },
-    },
-    {
-        -- Solves the terrible native lsp inlay hint behaviour.
-        -- * useful command to toggle inlay hint native display
-        --   :lua require("lsp-endhints").toggle()
-        "chrisgrieser/nvim-lsp-endhints",
-        event = "LspAttach",
-        opts = {}, -- required, even if empty
-        init = function()
-            require("lsp-endhints").setup({
-                icons = {
-                    type = "=> ",
-                    parameter = "<- ",
-                },
-            })
-        end
     },
     {
         -- Provide much better syntax highlighting + dynamic code presentations
@@ -1335,12 +1329,8 @@ require("lazy").setup({
                 config = function(_, opts)
                     require("dapui").setup(opts)
                     require("nvim-dap-virtual-text").setup({})
-                    require("neodev").setup({
-                      library = { plugins = { "nvim-dap-ui" }, types = true },
-                    })
                 end,
                 dependencies = {
-                    "folke/neodev.nvim",
                     "theHamsta/nvim-dap-virtual-text",
                 }
             },
