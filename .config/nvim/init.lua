@@ -1503,9 +1503,10 @@ require("lazy").setup({
             You are an AI programming assistant integrated into a code editor. Your purpose is to help the user with programming tasks as they write code or answer questions.
             Key capabilities:
             - Thoroughly analyze the user's code and provide insightful suggestions for improvements related to best practices, performance, readability, and maintainability. Explain your reasoning.
-            - Answer coding questions in detail, using examples from the user's own code when relevant. Break down complex topics step- Spot potential bugs and logical errors. Alert the user and suggest fixes.
+            - Answer coding questions in detail, using examples from the user's own code when relevant. Break down complex topics step-by-step.
+            - Spot potential bugs and logical errors. Alert the user and suggest fixes.
             - Upon request, add helpful comments explaining complex or unclear code.
-            - Suggest relevant documentation, StackOverflow answers, and other resources related to the user's code and questions.
+            - Suggest relevant documentation and other resources related to the user's code and questions.
             - Engage in back-and-forth conversations to understand the user's intent and provide the most helpful information.
             - Consider other possibilities to achieve the result, do not be limited by the prompt.
             - Keep concise and use markdown.
@@ -1535,14 +1536,22 @@ require("lazy").setup({
             -- local g_model = 'gemini-1.5-pro'
 
             local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
-            -- local g_model = 'gemini-exp-1206'
-            -- local g_model = 'gemini-2.0-flash-exp'
-            local g_model = 'gemini-2.5-flash-preview-05-20'
+            -- local g_model = 'gemini-2.5-flash-preview-09-2025'
+            local g_model = 'gemini-2.5-pro'
 
             local debug_path = '/tmp/dingllm_debug.log'
 
+            local function confirm_action(prompt_message)
+                local input_char = vim.fn.input(prompt_message .. " (Press 'Y' to confirm, any other key to cancel): ")
+                return input_char == 'Y'
+            end
+
             -- https://ai.google.dev/gemini-api/docs/models/gemini
             local function gemeni_replace()
+                if not confirm_action("Proceed with LLM 'replace' operation?") then
+                    print("LLM 'replace' cancelled.")
+                    return
+                end
                 dingllm.invoke_llm_and_stream_into_editor({
                     -- url = release_url,
                     url = beta_url,
@@ -1550,12 +1559,16 @@ require("lazy").setup({
                     api_key_name = 'GEMINI_API_KEY_159',
                     system_prompt = replace_prompt,
                     replace = true,
-                    debug = false,
+                    debug = true,
                     debug_path = debug_path,
                 }, dingllm.make_gemini_spec_curl_args, dingllm.handle_gemini_spec_data)
             end
 
             local function gemeni_help()
+                if not confirm_action("Proceed with LLM 'help' operation?") then
+                    print("LLM 'help' cancelled.")
+                    return
+                end
                 dingllm.invoke_llm_and_stream_into_editor({
                     -- url = release_url,
                     url = beta_url,

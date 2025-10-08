@@ -27,6 +27,8 @@ alias v='nvim'
 export VISUAL=nvim
 export EDITOR="$VISUAL"
 
+export MANPAGER='nvim +Man!'
+
 export FZF_DEFAULT_OPTS='--height 60% --border --reverse'
 export FZF_DEFAULT_COMMAND="rg --files --hidden --smart-case -g '!{.git,.svn}'"
 export FZF_CTRL_T_COMMAND=$FZF_DEFAULT_COMMAND
