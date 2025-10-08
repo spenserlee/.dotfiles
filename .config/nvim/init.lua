@@ -931,15 +931,49 @@ require("lazy").setup({
             "jay-babu/mason-nvim-dap.nvim",
         },
         config = function()
-            -- import mason
-            local mason = require("mason")
+            vim.lsp.config('lua_ls', {
+                settings = {
+                    Lua = {
+                        runtime = { version = 'LuaJIT' },
+                        diagnostics = {
+                            globals = { 'vim' },
+                        },
+                        workspace = {
+                            checkThirdParty = false,
+                        },
+                        telemetry = {
+                            enable = false,
+                        },
+                    },
+                },
+            })
 
-            -- import mason-lspconfig
+            vim.lsp.config('pylsp', {
+                settings = {
+                    pylsp = {
+                        plugins = {
+                            pycodestyle = {
+                                maxLineLength = 100,
+                            },
+                        },
+                    },
+                },
+            })
+
+            vim.lsp.config('zls', {
+                settings = {
+                    zls = {
+                        build_runner = "build",
+                        build_step = "check",
+                    },
+                },
+            })
+
+            local mason = require("mason")
             local mason_lspconfig = require("mason-lspconfig")
             local mason_tool_installer = require("mason-tool-installer")
-            -- local mason_dap = require("mason-nvim-dap")
 
-            -- enable mason and configure icons
+            -- Enable Mason.
             mason.setup({
                 ui = {
                     border = "rounded",
@@ -951,10 +985,7 @@ require("lazy").setup({
                 },
             })
 
-            -- See :help mason-lspconfig-dynamic-server-setup
-            local lspconfig = require("lspconfig")
-            local blink = require('blink.cmp') -- Ensure blink.cmp is loaded if you use it
-
+            -- Bridge Mason with lspconfig.
             mason_lspconfig.setup({
                 ensure_installed = {
                     "bashls",
@@ -962,56 +993,14 @@ require("lazy").setup({
                     "dockerls",
                     "lua_ls",
                     "pylsp",
-                    -- "rust_analyzer", -- Handled by rustaceanvim
-                    -- "yamlls",
-                },
-                -- auto-install configured servers (with lspconfig)
-                automatic_installation = true,
-                handlers = {
-                    -- Default handler for servers not explicitly listed
-                    function(server_name)
-                        local capabilities = blink.get_lsp_capabilities()
-                        lspconfig[server_name].setup({
-                            capabilities = capabilities
-                        })
-                    end,
-                    -- don't setup rust_analyzer with meson, rustaceanvim handles it now.
-                    ["rust_analyzer"] = function() end,
-                    ["pylsp"] = function()
-                        local capabilities = blink.get_lsp_capabilities()
-                        -- github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
-                        lspconfig.pylsp.setup({
-                            capabilities = capabilities,
-                            settings = {
-                                pylsp = {
-                                    plugins = {
-                                        pycodestyle = {
-                                            -- ignore = {'W391'},
-                                            maxLineLength = 100,
-                                        },
-                                    },
-                                },
-                            },
-                        })
-                    end,
-                    ["zls"] = function()
-                        local capabilities = blink.get_lsp_capabilities()
-                        lspconfig.zls.setup({
-                            capabilities = capabilities,
-                            settings = {
-                                zls = {
-                                    build_runner = "build",
-                                    build_step = "check",
-                                },
-                            },
-                        })
-                    end,
+                    "zls",
                 },
             })
 
+            -- Setup for formatters, linters, and debug adapters.
             mason_tool_installer.setup({
                 ensure_installed = {
-                    -- Formatter and Linters
+                    -- Formatters and Linters
                     "cmakelang", -- CMake
                     "markdownlint", --Markdown
 
@@ -1140,7 +1129,7 @@ require("lazy").setup({
             },
         },
         config = function()
-            -- TODO: how to suppress big error that shows up when opening ft
+            -- TODO: how to suppress big error '------' that shows up when opening ft
             -- without a treesitter installed?
             require("nvim-treesitter.configs").setup({
                 ensure_installed = {
