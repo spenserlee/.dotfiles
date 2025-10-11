@@ -654,6 +654,11 @@ require("lazy").setup({
                         vertical = "top"
                     },
                     width = "fit",
+                    winhighlight = {
+                        active = {
+                            Normal = "TSTodo",
+                        },
+                    },
                 },
                 ignore = {
                     unlisted_buffers = false,
