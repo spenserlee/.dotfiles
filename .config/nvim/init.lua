@@ -53,18 +53,22 @@ function QuickfixJump(direction)
 end
 
 function ShowVisualCharCount()
-  local _, ls, cs = table.unpack(vim.fn.getpos("'<"))
-  local _, le, ce = table.unpack(vim.fn.getpos("'>"))
-  local lines = vim.fn.getline(ls, le)
-  if #lines == 0 then
-    print("No selection.")
-    return
+  local _, ls, cs = unpack(vim.fn.getpos("'<"))
+  local _, le, ce = unpack(vim.fn.getpos("'>"))
+  local count
+
+  if ls == le then
+    local line_content = vim.fn.getline(ls)
+    count = #string.sub(line_content, cs, ce)
+  else
+    local lines = vim.fn.getline(ls, le)
+    lines[#lines] = string.sub(lines[#lines], 1, ce)
+    lines[1] = string.sub(lines[1], cs)
+    local text = table.concat(lines, "\n")
+    count = #text
   end
-  -- Trim selection to actual visual columns
-  lines[#lines] = string.sub(lines[#lines], 1, ce)
-  lines[1] = string.sub(lines[1], cs)
-  local text = table.concat(lines, "\n")
-  print("Selection length: " .. #text .. " characters")
+
+  print("Selection length: " .. count .. " characters")
 end
 
 vim.api.nvim_set_keymap('v', '<leader>vc', [[:lua ShowVisualCharCount()<CR>]], { noremap = true, silent = true })
@@ -88,7 +92,6 @@ local function generate_and_execute_sed_command(args)
 
     local output = vim.fn.system(sed_command)
 
-    -- Check if "buffer" argument is passed
     if args.args == "buffer" then
         vim.cmd("new") -- Open a new split
         vim.cmd("setlocal buftype=nofile") -- Make the buffer a scratch buffer
@@ -96,9 +99,7 @@ local function generate_and_execute_sed_command(args)
         vim.cmd("setlocal noswapfile") -- Disable swapfile for this buffer
         vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(output, "\n"))
     else
-        -- TODO: fix the newlines not working in output pane...
-        -- Print the output inline in the command area for easy copy paste
-        vim.api.nvim_out_write(output)
+        print(output)
     end
 end
 
@@ -156,10 +157,22 @@ require("lazy").setup({
         config = function()
             local everforest = require("everforest")
             everforest.setup({
+                float_style = "dim",
                 background = "hard",
                 italics = true,
                 -- transparent_background_level = 0,
                 -- disable_italic_comments = false
+                on_highlights = function(hl, palette)
+                    local float_bg = palette.bg0
+                    local border_fg = palette.grey2
+                    hl.BlinkCmpMenu = { bg = float_bg }
+                    hl.BlinkCmpMenuBorder = { bg = float_bg, fg = border_fg }
+                    hl.BlinkCmpDoc = { bg = float_bg }
+                    hl.BlinkCmpDocBorder = { bg = float_bg, fg = border_fg }
+
+                    hl.FzfLuaBorder = { bg = "#121517", fg = border_fg }
+                    -- hl.FzfLuaTitle = { bg = "#121517", fg = border_fg }
+                end,
                 colours_override = function (palette)
                     -- hard-er
                     -- source: <https://gist.github.com/suppayami/7d427d116b97564d1c565a7aed092d08>
@@ -195,33 +208,6 @@ require("lazy").setup({
                 return vim.g.async_make_status
             end
 
-            local function visual_char_count()
-                local mode = vim.fn.mode()
-                if mode ~= "v" and mode ~= "V" and mode ~= "\022" then
-                    return ""
-                end
-
-                -- get start/end of the visual selection
-                local s_pos = vim.fn.getpos("'<")
-                local e_pos = vim.fn.getpos("'>")
-                local ls, cs = s_pos[2], s_pos[3]
-                local le, ce = e_pos[2], e_pos[3]
-
-                -- grab lines and normalize to a list
-                local lines = vim.fn.getline(ls, le)
-                if type(lines) == "string" then lines = { lines } end
-
-                -- trim to the exact columns
-                lines[1]  = string.sub(lines[1],  cs)
-                lines[#lines] = string.sub(lines[#lines], 1, ce)
-
-                -- join with "\n" and count
-                local text = table.concat(lines, "\n")
-                local cnt  = #text
-
-                return string.format(" %d", cnt)
-            end
-
             require("lualine").setup({
                 sections = {
                     lualine_c = {
@@ -240,7 +226,6 @@ require("lazy").setup({
                         },
                     },
                     lualine_x = {
-                        { visual_char_count, cond = nil },
                         { build_status },
                         "%{ObsessionStatus()}",
                         "encoding",
@@ -808,7 +793,7 @@ require("lazy").setup({
                 }
             })
 
-            vim.api.nvim_set_option("updatetime", 400)
+            vim.opt.updatetime = 400
         end
     },
     {
@@ -901,6 +886,9 @@ require("lazy").setup({
             },
             snippets = {
                 preset = 'luasnip',
+            },
+            signature = {
+                enabled = true,
             },
             sources = {
                 default = { 'lazydev', 'lsp', 'path', 'snippets', 'buffer' },
@@ -1595,7 +1583,7 @@ function _G.toggle_diagnostics()
     end
 end
 -- Toggle diagnostics display, it can be very cluttered.
-vim.api.nvim_set_keymap('n', '<leader>tt', ':call v:lua.toggle_diagnostics()<CR>', { noremap = true, silent = false })
+vim.api.nvim_set_keymap('n', '<leader>tt', ':call v:lua.toggle_diagnostics()<CR>', { noremap = true, silent = true })
 
 -- See :help vim.diagnostic.config()
 vim.diagnostic.config({
@@ -1603,33 +1591,25 @@ vim.diagnostic.config({
     severity_sort = true,
     float = {
         border = "rounded",
-        -- source = "always",
     },
     signs = {
-        enable = true, -- Ensure signs are enabled
-        definitions = {
-            Error = { text = "", texthl = "DiagnosticSignError" },
-            Warn = { text = "", texthl = "DiagnosticSignWarn" },
-            Info = { text = "", texthl = "DiagnosticSignInfo" },
-            Hint = { text = "󰌵", texthl = "DiagnosticSignHint" },
+        enable = true,
+        text = {
+            [vim.diagnostic.severity.ERROR] = "",
+            [vim.diagnostic.severity.WARN]  = "",
+            [vim.diagnostic.severity.INFO]  = "",
+            [vim.diagnostic.severity.HINT]  = "󰌵",
+        },
+        texthl = {
+            [vim.diagnostic.severity.ERROR] = "DiagnosticSignError",
+            [vim.diagnostic.severity.WARN]  = "DiagnosticSignWarn",
+            [vim.diagnostic.severity.INFO]  = "DiagnosticSignInfo",
+            [vim.diagnostic.severity.HINT]  = "DiagnosticSignHint",
         },
     },
 })
 
--- there is a bug with documentation hover windows with extra spacing.
--- https://github.com/neovim/neovim/issues/25366
---
--- it seems like the nvim maintainers are just deleting comments about it???
--- https://github.com/neovim/neovim/issues/25718
-vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
-    vim.lsp.handlers.hover,
-    {border = "rounded"}
-)
-
-vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(
-    vim.lsp.handlers.signature_help,
-    {border = "rounded"}
-)
+vim.o.winborder = 'rounded'
 
 ---
 -- LSP Keybindings
@@ -1646,17 +1626,12 @@ vim.api.nvim_create_autocmd("LspAttach", {
             vim.keymap.set(mode, lhs, rhs, opts)
         end
 
-        -- You can search each function in the help page.
-        -- For example :help vim.lsp.buf.hover()
-
         bufmap("n", "K", "<cmd>lua vim.lsp.buf.hover()<cr>")
         bufmap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<cr>")
         bufmap("n", "gD", "<cmd>lua vim.lsp.buf.declaration()<cr>")
         bufmap("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<cr>")
         bufmap("n", "go", "<cmd>lua vim.lsp.buf.type_definition()<cr>")
-        -- bufmap("n", "gr", "<cmd>lua vim.lsp.buf.references()<cr>")
         bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>")
-        -- bufmap("n", "<leader>H", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
         bufmap("n", "<F9>", "<cmd>lua vim.lsp.buf.rename()<cr>")
         bufmap({"n", "x"}, "<F12>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
         bufmap("n", "gl", "<cmd>lua vim.diagnostic.open_float()<cr>")
