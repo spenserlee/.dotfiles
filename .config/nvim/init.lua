@@ -170,6 +170,8 @@ require("lazy").setup({
                     hl.BlinkCmpDoc = { bg = float_bg }
                     hl.BlinkCmpDocBorder = { bg = float_bg, fg = border_fg }
 
+                    hl.TreesitterContext = { bg = palette.bg2 }
+
                     hl.FzfLuaBorder = { bg = "#121517", fg = border_fg }
                     -- hl.FzfLuaTitle = { bg = "#121517", fg = border_fg }
                 end,
