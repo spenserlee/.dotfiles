@@ -395,7 +395,10 @@ require("lazy").setup({
         ---@module 'oil'
         ---@type oil.SetupOpts
         dependencies = { "nvim-tree/nvim-web-devicons" },
+        lazy = false,
         opts = {
+            delete_to_trash = true,
+            default_file_explorer = true,
             columns = {
                 "icon",
                 "permissions",
@@ -858,16 +861,30 @@ require("lazy").setup({
             keymap = {
                 ['<Tab>'] = {
                     function(cmp)
+                        -- 1. Priority: If the menu is open (which it is often, due to auto_insert),
+                        --    we want to cycle through suggestions, NOT jump.
+                        if cmp.is_visible() then
+                            return cmp.select_next()
+                        end
+                        -- 2. Priority: Only if the menu is closed, check if we can jump in a snippet.
                         if cmp.snippet_active() then
                             return cmp.snippet_forward()
                         end
+                    end,
+                    -- 3. Fallback to normal tab (indentation)
+                    'fallback'
+                },
+                ['<S-Tab>'] = {
+                    function(cmp)
                         if cmp.is_visible() then
-                            return cmp.select_next()
+                            return cmp.select_prev()
+                        end
+                        if cmp.snippet_active() then
+                            return cmp.snippet_backward()
                         end
                     end,
                     'fallback'
                 },
-                ['<S-Tab>'] = { 'snippet_backward', 'select_prev', 'fallback' },
                 ['<C-y>'] = { 'accept', 'fallback' },
                 ['<CR>'] = { 'accept', 'fallback' },
                 ['<C-l>'] = { 'show', 'hide', 'fallback' },
@@ -951,6 +968,7 @@ require("lazy").setup({
                     pylsp = {
                         plugins = {
                             pycodestyle = {
+                                ignore = { 'E501', 'E302' },
                                 maxLineLength = 100,
                             },
                         },
@@ -1527,6 +1545,7 @@ require("lazy").setup({
             local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
             -- local g_model = 'gemini-2.5-flash-preview-09-2025'
             local g_model = 'gemini-2.5-pro'
+            -- local g_model = 'gemini-3-pro-preview'
 
             local debug_path = '/tmp/dingllm_debug.log'
 
