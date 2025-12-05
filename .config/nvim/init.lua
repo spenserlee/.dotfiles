@@ -1577,6 +1577,13 @@ require("lazy").setup({
                     print("LLM 'help' cancelled.")
                     return
                 end
+
+                -- Optional: Automatically insert a separator so the LLM knows you are finished typing
+                -- This helps the "parse_gemini_history" function.
+                local row, _ = unpack(vim.api.nvim_win_get_cursor(0))
+                vim.api.nvim_buf_set_lines(0, row, row, false, { "", "## Model", "" })
+                vim.api.nvim_win_set_cursor(0, { row + 3, 0 })
+
                 dingllm.invoke_llm_and_stream_into_editor({
                     -- url = release_url,
                     url = beta_url,
