@@ -1641,31 +1641,30 @@ vim.o.winborder = 'rounded'
 -- LSP Keybindings
 ---
 
-local group = vim.api.nvim_create_augroup("user_cmds", {clear = true})
-
 vim.api.nvim_create_autocmd("LspAttach", {
-    group = group,
+    group = vim.api.nvim_create_augroup("UserLspConfig", {clear = true}),
     desc = "LSP actions",
-    callback = function()
-        local bufmap = function(mode, lhs, rhs)
-            local opts = {buffer = true}
+    callback = function(ev)
+        local bufmap = function(mode, lhs, rhs, desc)
+            local opts = { buffer = ev.buf, desc = "LSP: " .. desc }
             vim.keymap.set(mode, lhs, rhs, opts)
         end
 
-        bufmap("n", "K", "<cmd>lua vim.lsp.buf.hover()<cr>")
-        bufmap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<cr>")
-        bufmap("n", "gD", "<cmd>lua vim.lsp.buf.declaration()<cr>")
-        bufmap("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<cr>")
-        bufmap("n", "go", "<cmd>lua vim.lsp.buf.type_definition()<cr>")
-        bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>")
-        bufmap("n", "<F9>", "<cmd>lua vim.lsp.buf.rename()<cr>")
-        bufmap({"n", "x"}, "<F12>", "<cmd>lua vim.lsp.buf.format({async = true})<cr>")
-        bufmap("n", "gl", "<cmd>lua vim.diagnostic.open_float()<cr>")
-        bufmap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<cr>")
-        bufmap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<cr>")
+        bufmap("n", "K", vim.lsp.buf.hover, "Hover documentation")
+        bufmap("n", "gd", vim.lsp.buf.definition, "Go to definition")
+        bufmap("n", "gD", vim.lsp.buf.declaration, "Go to declaration")
+        bufmap("n", "gi", vim.lsp.buf.implementation, "Go to implementation")
+        bufmap("n", "go", vim.lsp.buf.type_definition, "Go to type definition")
+        bufmap("n", "gr", "<cmd>FzfLua lsp_references<cr>", "FZF list references")
+        bufmap("n", "<F9>", vim.lsp.buf.rename, "Rename variable references")
 
-        bufmap("n", "<F8>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
-        bufmap("x", "<F8>", "<cmd>lua vim.lsp.buf.code_action()<cr>")
+        bufmap("n", "gl", vim.diagnostic.open_float, "Diagnostic open float")
+        bufmap("n", "[d", function() vim.diagnostic.jump({ count = -1, float = true}) end, "Diagnostic previous")
+        bufmap("n", "]d", function() vim.diagnostic.jump({ count = 1, float = true}) end, "Diagnostic next")
+
+        bufmap({"n", "x"}, "<F12>", function() vim.lsp.buf.format({ async = true }) end, "Buffer format")
+        bufmap("n", "<F8>", vim.lsp.buf.code_action, "Code action (normal)")
+        bufmap("x", "<F8>", vim.lsp.buf.code_action, "Code action (visual)")
     end
 })
 
