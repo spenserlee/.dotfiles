@@ -858,6 +858,9 @@ require("lazy").setup({
         ---@module 'blink.cmp'
         ---@type blink.cmp.Config
         opts = {
+            cmdline = {
+                enabled = false,
+            },
             keymap = {
                 ['<Tab>'] = {
                     function(cmp)
