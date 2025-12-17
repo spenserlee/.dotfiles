@@ -4,24 +4,33 @@
     "actions": 
     [
         {
+            "command": "find",
+            "id": "User.find"
+        },
+        {
             "command": 
             {
                 "action": "splitPane",
                 "split": "auto",
                 "splitMode": "duplicate"
             },
-            "id": "User.splitPane.A6751878",
-            "keys": "alt+shift+d"
-        },
-        {
-            "command": "find",
-            "id": "User.find",
-            "keys": "ctrl+shift+f"
+            "id": "User.splitPane.A6751878"
         }
     ],
     "copyFormatting": "none",
     "copyOnSelect": false,
     "defaultProfile": "{51855cb2-8cce-5362-8f54-464b92b32386}",
+    "keybindings":
+    [
+        {
+            "id": "User.splitPane.A6751878",
+            "keys": "alt+shift+d"
+        },
+        {
+            "id": "User.find",
+            "keys": "ctrl+shift+f"
+        }
+    ],
     "newTabMenu": 
     [
         {
@@ -95,29 +104,6 @@
     "schemes": 
     [
         {
-            "background": "#e5dfc5",
-            "black": "#D8D3BA",
-            "blue": "#3A94C5",
-            "brightBlack": "#D8D3BA",
-            "brightBlue": "#3A94C5",
-            "brightCyan": "#35A77C",
-            "brightGreen": "#8DA101",
-            "brightPurple": "#DF69BA",
-            "brightRed": "#F85552",
-            "brightWhite": "#5C6A72",
-            "brightYellow": "#DFA000",
-            "cursorColor": "#000000",
-            "cyan": "#35A77C",
-            "foreground": "#5C6A72",
-            "green": "#8DA101",
-            "name": "Everforest Soft Light",
-            "purple": "#DF69BA",
-            "red": "#F85552",
-            "selectionBackground": "#F4DBD0",
-            "white": "#5C6A72",
-            "yellow": "#DFA000"
-        },
-        {
             "background": "#1E2326",
             "black": "#4B565C",
             "blue": "#7FBBB3",
@@ -162,6 +148,29 @@
             "selectionBackground": "#FFFFFF",
             "white": "#D3C6AA",
             "yellow": "#DBBC7F"
+        },
+        {
+            "background": "#E5DFC5",
+            "black": "#D8D3BA",
+            "blue": "#3A94C5",
+            "brightBlack": "#D8D3BA",
+            "brightBlue": "#3A94C5",
+            "brightCyan": "#35A77C",
+            "brightGreen": "#8DA101",
+            "brightPurple": "#DF69BA",
+            "brightRed": "#F85552",
+            "brightWhite": "#5C6A72",
+            "brightYellow": "#DFA000",
+            "cursorColor": "#000000",
+            "cyan": "#35A77C",
+            "foreground": "#5C6A72",
+            "green": "#8DA101",
+            "name": "Everforest Soft Light",
+            "purple": "#DF69BA",
+            "red": "#F85552",
+            "selectionBackground": "#F4DBD0",
+            "white": "#5C6A72",
+            "yellow": "#DFA000"
         },
         {
             "background": "#282828",
@@ -325,31 +334,16 @@
             "yellow": "#B47109"
         }
     ],
-    "theme": { "dark": "Everforest Dark Hard", "light": "Everforest Soft Light" },
+    "theme": "Everforest Dark Hard",
     "themes":
     [
-        {
-            "name": "Everforest Soft Light",
-            "tab":
-            {
-                "background": "#E5DFC5FF",
-                "unfocusedBackground": null
-            },
-            "tabRow":
-            {
-                "background": "#F3EAD3FF",
-                "unfocusedBackground": "#E5DFC5FF"
-            },
-            "window":
-            {
-                "applicationTheme": "light",
-            }
-        },
         {
             "name": "Everforest Dark Hard",
             "tab":
             {
-                "background": "#1E2326FF",
+                "background": "#45707AFF",
+                "iconStyle": "default",
+                "showCloseButton": "always",
                 "unfocusedBackground": "#272E33FF"
             },
             "tabRow":
@@ -360,6 +354,33 @@
             "window":
             {
                 "applicationTheme": "dark",
+                "experimental.rainbowFrame": false,
+                "frame": null,
+                "unfocusedFrame": null,
+                "useMica": false
+            }
+        },
+        {
+            "name": "Everforest Soft Light",
+            "tab":
+            {
+                "background": "#E5DFC5FF",
+                "iconStyle": "default",
+                "showCloseButton": "always",
+                "unfocusedBackground": null
+            },
+            "tabRow":
+            {
+                "background": "#F3EAD3FF",
+                "unfocusedBackground": "#E5DFC5FF"
+            },
+            "window":
+            {
+                "applicationTheme": "light",
+                "experimental.rainbowFrame": false,
+                "frame": null,
+                "unfocusedFrame": null,
+                "useMica": false
             }
         }
     ],
