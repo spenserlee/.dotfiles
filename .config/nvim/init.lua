@@ -264,6 +264,7 @@ require("lazy").setup({
     {
         -- For unifying TMUX pane / VIM split navigation.
         'mrjones2014/smart-splits.nvim',
+        lazy = false,
         dependencies = {
             {
                 "kwkarlwang/bufresize.nvim",
