@@ -1,7 +1,80 @@
--- Load regular VIM-compatible settings file.
-vim.cmd("source ~/.config/nvim/viml/init.vim")
+-- =============================================================================
+-- 1. GLOBALS & OPTIONS
+-- =============================================================================
 
--- Bootstrap lazy.nvim
+-- Map leader must be set before plugins are loaded
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
+-- General settings (converted from init.vim)
+vim.opt.hidden = true                  -- Allow background buffers
+vim.opt.autoread = true                -- Update files if changed externally
+vim.opt.history = 10000                -- Command history
+vim.opt.undofile = true                -- Save undo history to file
+vim.opt.clipboard = "unnamedplus"      -- Use system clipboard
+vim.opt.errorbells = false             -- Silence error bells
+vim.opt.mouse = "n"                    -- Use mouse in normal mode
+vim.opt.backspace = { "indent", "eol", "start" } -- Backspace acts sensibly
+
+-- UI settings
+vim.opt.encoding = "utf-8"
+vim.opt.title = true                   -- Show what's open
+vim.opt.ruler = true                   -- Always show current position
+vim.opt.showcmd = true                 -- Display command typed
+vim.opt.cmdheight = 1                  -- Height of command bar
+vim.opt.scrolloff = 3                  -- Buffer line space when scrolling up/down
+vim.opt.sidescrolloff = 5              -- Buffer line space when scrolling left/right
+vim.opt.relativenumber = true          -- Relative line numbers
+vim.opt.number = true                  -- Show absolute line numbers
+vim.opt.textwidth = 80                 -- Break text at 80th column
+vim.opt.colorcolumn = ""               -- Disable color column by default
+vim.opt.hlsearch = true                -- Highlight search results
+vim.opt.splitbelow = true              -- New panes appear more natural
+vim.opt.splitright = true
+vim.opt.background = "dark"
+vim.opt.signcolumn = "yes"
+vim.opt.laststatus = 3                 -- Global statusline (only one at bottom)
+
+-- Text formatting
+vim.opt.ignorecase = true              -- Ignore case when searching
+vim.opt.smartcase = true               -- When searching try to be smart
+vim.opt.smarttab = true                -- Be smart about tabbing
+vim.opt.wrap = false                   -- Don't wrap text
+vim.opt.expandtab = true               -- Tabs = spaces
+vim.opt.shiftwidth = 4                 -- 1 tab == 4 spaces
+vim.opt.tabstop = 4
+vim.opt.autoindent = true              -- Auto indent
+vim.opt.smartindent = true             -- Smart indent
+vim.opt.list = true                    -- Visualize whitespace
+vim.opt.listchars = { tab = "→→", trail = "⋅", nbsp = "⋅" }
+
+-- Custom globals
+vim.g.async_make_status = ""
+vim.g.zig_syntax_disable = true
+
+-- Make and Errorformat
+-- vim.opt.makeprg = "./code/build.sh"
+--
+-- cl.exe TODO: remove "note" messages.
+-- vim.opt.errorformat:append("%f(%l):%m")
+-- vim.opt.errorformat:append("%f:%l:%m")
+
+vim.opt.makeprg = "ips_build.sh -f"
+vim.opt.errorformat:append("%f:%l:%c:%t:%m")
+vim.opt.errorformat:append("%f:%l:%c:%m")
+vim.opt.errorformat:append("%f:%l:%c")
+vim.opt.errorformat:append("%f:%s:%c")
+vim.opt.errorformat:append("%-G%.%#")
+
+-- Window navigation (fallback if smart-splits not loaded/used)
+vim.keymap.set("n", "<M-j>", "<C-W>j", { noremap = true })
+vim.keymap.set("n", "<M-k>", "<C-W>k", { noremap = true })
+vim.keymap.set("n", "<M-h>", "<C-W>h", { noremap = true })
+vim.keymap.set("n", "<M-l>", "<C-W>l", { noremap = true })
+
+-- =============================================================================
+-- 2. LAZY.NVIM BOOTSTRAP
+-- =============================================================================
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local lazyrepo = "https://github.com/folke/lazy.nvim.git"
@@ -18,126 +91,10 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
- -- Make sure to set `mapleader` before Lazy setup so your mappings are correct.
-vim.g.mapleader = " "
 
-vim.g.async_make_status = ""
-
--- Show highlight for yanked regions
-vim.cmd[[
-    augroup highlight_yank
-    autocmd!
-    au TextYankPost * silent! lua vim.highlight.on_yank
-        \ { higroup=(vim.fn["hlexists"]("HighlightedyankRegion") > 0 and
-        \ "HighlightedyankRegion" or "IncSearch"), timeout=500 }
-    augroup END
-]]
-
-function QuickfixJump(direction)
-    local info = vim.fn.getqflist({ idx = 0, items = 0 })
-    local total = #info.items
-    local current = info.idx
-
-    if total == 0 then
-        print("Quickfix list is empty")
-        return
-    elseif total == 1 then
-        vim.cmd("cc 1")
-        vim.api.nvim_command("normal! zz")
-        return
-    end
-
-    local new_index = ((current - 1 + direction) % total) + 1
-    vim.cmd("cc " .. new_index)
-    vim.api.nvim_command("normal! zz")
-end
-
-function ShowVisualCharCount()
-  local _, ls, cs = unpack(vim.fn.getpos("'<"))
-  local _, le, ce = unpack(vim.fn.getpos("'>"))
-  local count
-
-  if ls == le then
-    local line_content = vim.fn.getline(ls)
-    count = #string.sub(line_content, cs, ce)
-  else
-    local lines = vim.fn.getline(ls, le)
-    lines[#lines] = string.sub(lines[#lines], 1, ce)
-    lines[1] = string.sub(lines[1], cs)
-    local text = table.concat(lines, "\n")
-    count = #text
-  end
-
-  print("Selection length: " .. count .. " characters")
-end
-
-vim.api.nvim_set_keymap('v', '<leader>vc', [[:lua ShowVisualCharCount()<CR>]], { noremap = true, silent = true })
-
--- Set up key mappings for quickfix navigation.
-vim.api.nvim_set_keymap("n", "]q", ":lua QuickfixJump(1)<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "[q", ":lua QuickfixJump(-1)<CR>", { noremap = true, silent = true })
-
-local function generate_and_execute_sed_command(args)
-    local start_line = vim.fn.line("'<")
-    local end_line = vim.fn.line("'>")
-
-    local file_path = vim.fn.shellescape(vim.fn.expand("%:p"))
-    if file_path == "" then
-        print("Buffer does not have a file path.")
-        return
-    end
-
-    local sed_command = string.format("sed -n '%d,%dp' %s", start_line, end_line, file_path)
-    print(sed_command)
-
-    local output = vim.fn.system(sed_command)
-
-    if args.args == "buffer" then
-        vim.cmd("new") -- Open a new split
-        vim.cmd("setlocal buftype=nofile") -- Make the buffer a scratch buffer
-        vim.cmd("setlocal bufhidden=wipe") -- Wipe the buffer when closed
-        vim.cmd("setlocal noswapfile") -- Disable swapfile for this buffer
-        vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(output, "\n"))
-    else
-        print(output)
-    end
-end
-
-vim.api.nvim_create_user_command(
-    "SedDump",
-    generate_and_execute_sed_command,
-    {
-        range = true,
-        nargs = "?",
-        desc = "Generate and execute sed command based on visual selection (optionally output to buffer)"
-    }
-)
-
--- Copy line/visual block then comment it out and paste below.
-vim.keymap.set('n', 'yc', 'yy<cmd>normal gcc<CR>p')
-vim.keymap.set('v', 'Yc', 'y<cmd>normal gvgc<CR>o<Esc>p')
-
-vim.g.zig_syntax_disable = true
-
-local function trim_trailing_whitespace()
-  local save_cursor = vim.fn.getpos('.')
-  local file_path = vim.api.nvim_buf_get_name(0)
-  local git_dir = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null')
-  local is_tracked = vim.fn.system('git ls-files --error-unmatch -- ' .. file_path .. ' 2>/dev/null')
-
-  if git_dir and vim.fn.trim(is_tracked) == '' then
-      -- Untracked file, trim all trailing whitespace
-      vim.cmd('%s/\\s\\+$//e')
-      vim.fn.setpos('.', save_cursor)
-  end
-end
-
-vim.api.nvim_create_autocmd('BufWritePre', {
-  callback = trim_trailing_whitespace,
-  group = vim.api.nvim_create_augroup('TrimWhitespace', { clear = true }),
-})
-
--- Plugins
+-- =============================================================================
+-- 3. PLUGINS
+-- =============================================================================
 require("lazy").setup({
     {
         -- Load colorscheme first.
@@ -1256,6 +1213,7 @@ require("lazy").setup({
         "mfussenegger/nvim-dap",
         dependencies = {
             {
+                -- TODO: try out nvim-dap-view instead.
                 "rcarriga/nvim-dap-ui",
                 opts = {
                     layouts = { {
@@ -1555,9 +1513,336 @@ require("lazy").setup({
     },
 })
 
----
--- Diagnostic customization
----
+
+-- =============================================================================
+-- 4. GENERAL KEYMAPPINGS
+-- =============================================================================
+
+vim.api.nvim_set_keymap('v', '<leader>vc', [[:lua ShowVisualCharCount()<CR>]], { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "]q", ":lua QuickfixJump(1)<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "[q", ":lua QuickfixJump(-1)<CR>", { noremap = true, silent = true })
+
+vim.keymap.set('n', 'yc', 'yy<cmd>normal gcc<CR>p')
+vim.keymap.set('v', 'Yc', 'y<cmd>normal gvgc<CR>o<Esc>p')
+
+-- Shift+Tab to outdent in insert mode
+vim.keymap.set("i", "<S-Tab>", "<C-D>", { noremap = true })
+
+-- Toggle Paste mode
+vim.keymap.set("n", "<leader>p", function()
+    local old_paste = vim.opt.paste:get()
+    vim.opt.paste = not old_paste
+    print('Paste mode ' .. (not old_paste and 'ENABLED' or 'DISABLED'))
+end, { silent = true })
+
+-- Enter: change word under cursor
+vim.keymap.set("n", "<CR>", "ciw", { noremap = true })
+
+-- Ctrl+s: Save
+vim.keymap.set({ "n", "i", "v" }, "<C-s>", "<cmd>write<CR>", { noremap = true })
+
+-- Build with last args
+vim.keymap.set("n", "<C-M-b>", function()
+    vim.cmd("Make " .. (vim.g.last_make_args or ""))
+end, { noremap = true })
+
+-- Quickfix toggling
+local function toggle_quickfix()
+    for _, win in ipairs(vim.fn.getwininfo()) do
+        if win.quickfix == 1 then
+            vim.cmd("cclose")
+            return
+        end
+    end
+    vim.cmd("copen")
+end
+vim.keymap.set("n", "<leader>q", toggle_quickfix, {
+    noremap = true,
+    silent = true,
+})
+
+-- Quickfix clear list
+local function clear_quickfix()
+    vim.fn.setqflist({})
+    vim.cmd("cclose")
+end
+vim.keymap.set("n", "<leader>Q", clear_quickfix, {
+    noremap = true,
+    silent = true,
+})
+
+-- Quickfix navigation
+vim.keymap.set("n", "[Q", vim.cmd.cfirst, { noremap = true })
+vim.keymap.set("n", "]Q", vim.cmd.clast,  { noremap = true })
+
+-- Location list navigation
+vim.keymap.set("n", "[w", vim.cmd.lprev, { noremap = true })
+vim.keymap.set("n", "]w", vim.cmd.lnext, { noremap = true })
+
+-- Disable Ex mode
+vim.keymap.set("n", "Q", "<NOP>", { noremap = true })
+
+-- Move up/down lines visually when wrapped
+vim.keymap.set("n", "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
+vim.keymap.set("n", "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
+
+-- Clear search highlighting
+vim.keymap.set("n", "<leader>h", "<cmd>noh<CR>", { silent = true })
+
+-- Count occurrences
+vim.keymap.set("n", "<leader>C", ":%s///gn<CR>", { noremap = true })
+
+-- Jump to braces (function navigation)
+vim.keymap.set("n", "]]", "]]zt", { noremap = true })
+vim.keymap.set("n", "[[", "[[zt", { noremap = true })
+
+-- Buffer management
+vim.keymap.set("n", "<leader>d", "<cmd>bdelete<CR>", { noremap = true })
+
+-- Tab management
+vim.keymap.set("n", "R", "<cmd>tabprevious<CR>", { noremap = true })
+vim.keymap.set("n", "T", "<cmd>tabnext<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>tn", "<cmd>tabnew<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>tc", "<cmd>tabclose<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>tl", function()
+    vim.cmd("tabnext " .. vim.g.lasttab)
+end, { noremap = true })
+
+-- Zoom Toggle
+vim.keymap.set("n", "<leader>z", "<cmd>ZoomToggle<CR>", { silent = true, noremap = true })
+
+
+-- =============================================================================
+-- 5. AUTOCOMMANDS
+-- =============================================================================
+
+-- Quickfix window placement
+-- Move *global* quickfix window to the very bottom,
+-- but do NOT affect location lists (they share filetype "qf")
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "qf",
+    callback = function()
+        local wininfo = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
+        if wininfo.loclist ~= 1 then
+            vim.cmd("wincmd J")
+        end
+    end,
+})
+
+-- Highlight yanked regions
+local highlight_yank_group = vim.api.nvim_create_augroup("highlight_yank", { clear = true })
+vim.api.nvim_create_autocmd("TextYankPost", {
+    group = highlight_yank_group,
+    pattern = "*",
+    callback = function()
+        vim.highlight.on_yank({
+            higroup = (vim.fn.hlexists("HighlightedyankRegion") > 0 and "HighlightedyankRegion" or "IncSearch"),
+            timeout = 500
+        })
+    end,
+})
+
+-- Use relative numbers by default (normal/visual), but absolue in insert mode or nvim out of focus.
+local group = vim.api.nvim_create_augroup("RelativeNumberControl", { clear = true })
+
+-- Turn OFF relative numbers
+vim.api.nvim_create_autocmd({
+  "InsertEnter",
+  "WinLeave",
+  "FocusLost",
+}, {
+  group = group,
+  callback = function()
+    vim.opt_local.relativenumber = false
+  end,
+})
+
+-- Turn ON relative numbers
+vim.api.nvim_create_autocmd({
+  "InsertLeave",
+  "WinEnter",
+  "FocusGained",
+}, {
+  group = group,
+  callback = function()
+    -- Only enable if NOT in insert mode
+    if vim.fn.mode() ~= "i" then
+      vim.opt_local.relativenumber = true
+    end
+  end,
+})
+
+-- Return to last edit position when opening files
+vim.api.nvim_create_autocmd("BufReadPost", {
+    pattern = "*",
+    callback = function()
+        local mark = vim.api.nvim_buf_get_mark(0, '"')
+        local lcount = vim.api.nvim_buf_line_count(0)
+        if mark[1] > 0 and mark[1] <= lcount then
+            pcall(vim.api.nvim_win_set_cursor, 0, mark)
+        end
+    end,
+})
+
+-- Trim trailing whitespace on save (Git aware)
+local function trim_trailing_whitespace()
+  local save_cursor = vim.fn.getpos('.')
+  local file_path = vim.api.nvim_buf_get_name(0)
+  local git_dir = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null')
+  local is_tracked = vim.fn.system('git ls-files --error-unmatch -- ' .. file_path .. ' 2>/dev/null')
+
+  if git_dir and vim.fn.trim(is_tracked) == '' then
+      -- Untracked file, trim all trailing whitespace
+      vim.cmd('%s/\\s\\+$//e')
+      vim.fn.setpos('.', save_cursor)
+  end
+end
+
+vim.api.nvim_create_autocmd('BufWritePre', {
+  callback = trim_trailing_whitespace,
+  group = vim.api.nvim_create_augroup('TrimWhitespace', { clear = true }),
+})
+
+-- Track last tab for <leader>tl
+vim.g.lasttab = 1
+vim.api.nvim_create_autocmd("TabLeave", {
+    pattern = "*",
+    callback = function() vim.g.lasttab = vim.fn.tabpagenr() end,
+})
+
+-- Force Quickfix window to bottom
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "qf",
+    callback = function()
+        local winid = vim.api.nvim_get_current_win()
+        local wininfo = vim.fn.getwininfo(winid)[1]
+        if wininfo.loclist ~= 1 then
+            vim.cmd("wincmd J")
+        end
+    end,
+})
+
+
+-- =============================================================================
+-- 6. USER COMMANDS & FUNCTIONS
+-- =============================================================================
+
+-- Async Make Command
+vim.api.nvim_create_user_command('Make', function(opts)
+    vim.g.last_make_args = opts.args
+    require('async_make').make(opts.args)
+end, { nargs = "*" })
+
+-- Scratch buffer
+vim.api.nvim_create_user_command('Scratch', function()
+    vim.cmd("new")
+    vim.cmd("setlocal bt=nofile bh=wipe nobl noswapfile nu")
+    vim.cmd("set wrap")
+    vim.cmd("setfiletype markdown")
+end, {})
+
+-- Messages buffer
+vim.api.nvim_create_user_command('Messages', function()
+    vim.cmd("new")
+    vim.cmd("setlocal bt=nofile bh=wipe nobl noswapfile nu")
+    local output = vim.fn.execute("messages")
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(output, "\n"))
+    vim.cmd("set ft=vim")
+end, {})
+
+-- Compare Lines
+vim.api.nvim_create_user_command('CompareLines', function(opts)
+    local line1 = vim.fn.getline(opts.line1)
+    local line2 = vim.fn.getline(opts.line2)
+    if line1 == line2 then print('Lines are identical') else print('Lines are different') end
+end, { range = true })
+
+-- SedDump Command
+local function generate_and_execute_sed_command(args)
+    local start_line = vim.fn.line("'<")
+    local end_line = vim.fn.line("'>")
+
+    local file_path = vim.fn.shellescape(vim.fn.expand("%:p"))
+    if file_path == "" then
+        print("Buffer does not have a file path.")
+        return
+    end
+
+    local sed_command = string.format("sed -n '%d,%dp' %s", start_line, end_line, file_path)
+    print(sed_command)
+
+    local output = vim.fn.system(sed_command)
+
+    if args.args == "buffer" then
+        vim.cmd("new") -- Open a new split
+        vim.cmd("setlocal buftype=nofile") -- Make the buffer a scratch buffer
+        vim.cmd("setlocal bufhidden=wipe") -- Wipe the buffer when closed
+        vim.cmd("setlocal noswapfile") -- Disable swapfile for this buffer
+        vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(output, "\n"))
+    else
+        print(output)
+    end
+end
+
+vim.api.nvim_create_user_command("SedDump", generate_and_execute_sed_command, {
+    range = true, nargs = "?", desc = "Generate and execute sed command based on visual selection"
+})
+
+vim.api.nvim_create_user_command('ZoomToggle', function()
+    local t_zoomed = vim.t.zoomed
+    if t_zoomed then
+        vim.cmd(vim.t.zoom_winrestcmd)
+        vim.t.zoomed = false
+    else
+        vim.t.zoom_winrestcmd = vim.fn.winrestcmd()
+        vim.cmd("resize")
+        vim.cmd("vertical resize")
+        vim.t.zoomed = true
+    end
+end, {})
+
+function QuickfixJump(direction)
+    local info = vim.fn.getqflist({ idx = 0, items = 0 })
+    local total = #info.items
+    local current = info.idx
+
+    if total == 0 then
+        print("Quickfix list is empty")
+        return
+    elseif total == 1 then
+        vim.cmd("cc 1")
+        vim.api.nvim_command("normal! zz")
+        return
+    end
+
+    local new_index = ((current - 1 + direction) % total) + 1
+    vim.cmd("cc " .. new_index)
+    vim.api.nvim_command("normal! zz")
+end
+
+function ShowVisualCharCount()
+  local _, ls, cs = unpack(vim.fn.getpos("'<"))
+  local _, le, ce = unpack(vim.fn.getpos("'>"))
+  local count
+
+  if ls == le then
+    local line_content = vim.fn.getline(ls)
+    count = #string.sub(line_content, cs, ce)
+  else
+    local lines = vim.fn.getline(ls, le)
+    lines[#lines] = string.sub(lines[#lines], 1, ce)
+    lines[1] = string.sub(lines[1], cs)
+    local text = table.concat(lines, "\n")
+    count = #text
+  end
+
+  print("Selection length: " .. count .. " characters")
+end
+
+
+-- =============================================================================
+-- 7. DIAGNOSTICS & LSP CONFIG
+-- =============================================================================
 vim.g.diagnostics_active = true
 function _G.toggle_diagnostics()
     if vim.g.diagnostics_active then
@@ -1568,6 +1853,7 @@ function _G.toggle_diagnostics()
         vim.g.diagnostics_active = true
     end
 end
+
 -- Toggle diagnostics display, it can be very cluttered.
 vim.api.nvim_set_keymap('n', '<leader>tt', ':call v:lua.toggle_diagnostics()<CR>', { noremap = true, silent = true })
 
@@ -1597,10 +1883,7 @@ vim.diagnostic.config({
 
 vim.o.winborder = 'rounded'
 
----
 -- LSP Keybindings
----
-
 vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("UserLspConfig", {clear = true}),
     desc = "LSP actions",
