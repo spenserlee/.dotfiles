@@ -428,56 +428,6 @@ require("lazy").setup({
             {"<leader>E", "<cmd>Oil --float<CR>", desc = "Open Oil in a floating window"},
         },
     },
-    -- Organize your life.
-    --      <leader>oa = open agenda file.
-    --      <leader>oc = open notes file (to be re-filed).
-    {
-        'nvim-orgmode/orgmode',
-        dependencies = {
-            {
-                "nvim-orgmode/org-bullets.nvim",
-                config = function()
-                    require('org-bullets').setup()
-                end,
-            }
-        },
-        event = 'VeryLazy',
-        ft = { 'org' },
-        config = function()
-            require('orgmode').setup({
-                org_agenda_files = '~/orgfiles/**/*',
-                org_default_notes_file = '~/orgfiles/refile.org',
-                org_adapt_indentation = false,
-            })
-
-            require('nvim-treesitter.configs').setup({
-                  ignore_install = { 'org' },
-            })
-        end,
-    },
-    {
-        "chipsenkbeil/org-roam.nvim",
-        tag = "0.1.1",
-        dependencies = {
-            {
-                "nvim-orgmode/orgmode",
-                tag = "0.3.7",
-            },
-        },
-        event = 'VeryLazy',
-        ft = { 'org' },
-        config = function()
-            require("org-roam").setup({
-                directory = "~/orgfiles",
-                -- optional
-                -- org_files = {
-                --     "~/another_org_dir",
-                --     "~/some/folder/*.org",
-                --     "~/a/single/org_file.org",
-                -- }
-            })
-        end
-    },
     {
         -- Add git commands directly in the editor.
         --
@@ -1546,8 +1496,8 @@ require("lazy").setup({
             -- local g_model = 'gemini-1.5-pro'
 
             local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
-            -- local g_model = 'gemini-2.5-flash-preview-09-2025'
-            local g_model = 'gemini-2.5-pro'
+            local g_model = 'gemini-2.5-flash'
+            -- local g_model = 'gemini-2.5-pro' -- RIP 2.5 pro Dec 6 2025
             -- local g_model = 'gemini-3-pro-preview'
 
             local debug_path = '/tmp/dingllm_debug.log'
