@@ -53,18 +53,8 @@ vim.g.async_make_status = ""
 vim.g.zig_syntax_disable = true
 
 -- Make and Errorformat
--- vim.opt.makeprg = "./code/build.sh"
---
--- cl.exe TODO: remove "note" messages.
--- vim.opt.errorformat:append("%f(%l):%m")
--- vim.opt.errorformat:append("%f:%l:%m")
-
 vim.opt.makeprg = "ips_build.sh -f"
-vim.opt.errorformat:append("%f:%l:%c:%t:%m")
-vim.opt.errorformat:append("%f:%l:%c:%m")
-vim.opt.errorformat:append("%f:%l:%c")
-vim.opt.errorformat:append("%f:%s:%c")
-vim.opt.errorformat:append("%-G%.%#")
+vim.opt.errorformat = [[ %f:%l:%c:%t:%m,%f:%l:%c:%m,%f:%l:%c,%f:%s:%c,%-G%.%# ]]
 
 -- Window navigation (fallback if smart-splits not loaded/used)
 vim.keymap.set("n", "<M-j>", "<C-W>j", { noremap = true })
@@ -1340,12 +1330,23 @@ require("lazy").setup({
                     end,
                     cwd = '${workspaceFolder}',
                     stopAtEntry = true,
+                    -- forkMode = 'both',
                     setupCommands = {
                         {
                             text = '-enable-pretty-printing',
                             description = 'enable pretty printing',
                             ignoreFailures = false
                         },
+                        -- {
+                        --     text = 'set detach-on-fork off',
+                        --     description = 'Both parent and child processes reamin under GDBs control',
+                        --     ignoreFailures = false
+                        -- },
+                        -- {
+                        --     text = 'set follow-fork-mode child',
+                        --     description = 'Follow the child process on fork',
+                        --     ignoreFailures = false
+                        -- }
                     },
                     runInTerminal = false,
                     -- Prompt for arguments dynamically
@@ -1788,6 +1789,17 @@ end
 vim.api.nvim_create_user_command("SedDump", generate_and_execute_sed_command, {
     range = true, nargs = "?", desc = "Generate and execute sed command based on visual selection"
 })
+
+vim.api.nvim_create_user_command(
+  'FormatSignature',
+  function()
+    require('sig_formatter').format_signature()
+  end,
+  {
+    nargs = 0,
+    desc = "Formats a single-line F-SBID rule into a readable multi-line format"
+  }
+)
 
 vim.api.nvim_create_user_command('ZoomToggle', function()
     local t_zoomed = vim.t.zoomed
