@@ -53,18 +53,9 @@ vim.g.async_make_status = ""
 vim.g.zig_syntax_disable = true
 
 -- Make and Errorformat
--- vim.opt.makeprg = "./code/build.sh"
---
 -- cl.exe TODO: remove "note" messages.
--- vim.opt.errorformat:append("%f(%l):%m")
--- vim.opt.errorformat:append("%f:%l:%m")
-
-vim.opt.makeprg = "ips_build.sh -f"
-vim.opt.errorformat:append("%f:%l:%c:%t:%m")
-vim.opt.errorformat:append("%f:%l:%c:%m")
-vim.opt.errorformat:append("%f:%l:%c")
-vim.opt.errorformat:append("%f:%s:%c")
-vim.opt.errorformat:append("%-G%.%#")
+vim.opt.makeprg = "./code/build.sh"
+vim.o.errorformat = [[%f(%l):%m,%f:%l:%m]]
 
 -- Window navigation (fallback if smart-splits not loaded/used)
 vim.keymap.set("n", "<M-j>", "<C-W>j", { noremap = true })
