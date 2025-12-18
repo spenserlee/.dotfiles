@@ -334,7 +334,7 @@ require("lazy").setup({
             {"<leader>l", "<cmd>FzfLua blines<cr>", desc = "FZF buffer lines"},
             {"<leader>c", "<cmd>FzfLua commands<cr>", desc = "FZF commands"},
             {"<leader>s", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "LSP Document Symbols"},
-            {"<leader>of", "<cmd>lua require'fzf-lua'.files({ prompt='orgfiles> ', cwd='~/orgfiles' })<cr>", desc = "FZF Org Files"},
+            {"<leader>on", "<cmd>lua require'fzf-lua'.files({ prompt='notes> ', cwd='~/notes' })<cr>", desc = "FZF Note Files"},
         },
     },
     {
@@ -1456,7 +1456,8 @@ require("lazy").setup({
             -- local g_model = 'gemini-1.5-pro'
 
             local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
-            local g_model = 'gemini-2.5-flash'
+            local g_model = 'gemini-3-flash-preview'
+            -- local g_model = 'gemini-2.5-flash'
             -- local g_model = 'gemini-2.5-pro' -- RIP 2.5 pro Dec 6 2025
             -- local g_model = 'gemini-3-pro-preview'
 
@@ -1731,9 +1732,14 @@ vim.api.nvim_create_autocmd("FileType", {
 
 -- Async Make Command
 vim.api.nvim_create_user_command('Make', function(opts)
-    vim.g.last_make_args = opts.args
-    require('async_make').make(opts.args)
+    -- Allow repeating the last make with empty args or passing new ones
+    local args = opts.args ~= "" and opts.args or (vim.g.last_make_args or "")
+    vim.g.last_make_args = args
+    require('async_make').make(args)
 end, { nargs = "*" })
+
+-- Keybind to stop current background build
+vim.keymap.set('n', '<leader>mc', function() require('async_make').stop() end, { desc = "Cancel Make" })
 
 -- Scratch buffer
 vim.api.nvim_create_user_command('Scratch', function()

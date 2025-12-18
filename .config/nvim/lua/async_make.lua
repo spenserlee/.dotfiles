@@ -1,95 +1,130 @@
 local M = {}
 
-function M.make(arg)
-    local lines = {}
-    local winnr = vim.fn.win_getid()
-    local bufnr = vim.api.nvim_win_get_buf(winnr)
+-- Store current job ID to allow cancellation
+M.current_job = nil
 
-    local makeprg = vim.o.makeprg or vim.api.nvim_buf_get_option(bufnr, "makeprg")
-    if not makeprg then
-        vim.g.async_make_status = '[no makeprg]'
-        return
+function M.stop()
+    if M.current_job then
+        vim.fn.jobstop(M.current_job)
+        M.current_job = nil
+    end
+end
+
+function M.make(arg)
+    -- Stop previous job if it's still running
+    M.stop()
+
+    local bufnr = vim.api.nvim_get_current_buf()
+
+    -- Get makeprg: buffer-local > global > "make"
+    local makeprg = vim.api.nvim_get_option_value("makeprg", { buf = bufnr })
+    if makeprg == "" then
+        makeprg = vim.api.nvim_get_option_value("makeprg", { scope = "global" })
+    end
+    if not makeprg or makeprg == "" then makeprg = "make" end
+
+    -- Get errorformat: buffer-local > global
+    local efm = vim.api.nvim_get_option_value("errorformat", { buf = bufnr })
+    if efm == "" then
+        efm = vim.api.nvim_get_option_value("errorformat", { scope = "global" })
     end
 
-    local args = vim.fn.expand(arg)
-    local cmd = vim.fn.expandcmd(makeprg) .. " " .. args
+    -- Expand the command and append arguments
+    -- expandcmd handles things like % (current file)
+    local expanded_args = vim.fn.expand(arg)
+    local cmd = vim.fn.expandcmd(makeprg)
+    if expanded_args ~= "" then
+        cmd = cmd .. " " .. expanded_args
+    end
 
-    local start_time = os.time() + os.clock() % 1
+    local lines = {}
+    local start_time = vim.uv.hrtime()
     vim.g.async_make_status = '[Building...]'
 
-    local function on_event(_, data, event)
-        if event == "stdout" or event == "stderr" then
+    -- Use QuickFixCmdPre for compatibility with other plugins
+    vim.api.nvim_exec_autocmds("QuickFixCmdPre", { pattern = "make" })
+
+    M.current_job = vim.fn.jobstart(cmd, {
+        stdout_buffered = true,
+        stderr_buffered = true,
+        on_stdout = function(_, data)
             if data then
                 for _, line in ipairs(data) do
-                    if line ~= "" then
-                        table.insert(lines, line)
-                    end
+                    if line ~= "" then table.insert(lines, line) end
                 end
             end
-        end
+        end,
+        on_stderr = function(_, data)
+            if data then
+                for _, line in ipairs(data) do
+                    if line ~= "" then table.insert(lines, line) end
+                end
+            end
+        end,
+        on_exit = function(_, exit_code)
+            M.current_job = nil
 
-        if event == "exit" then
-            bufnr = vim.api.nvim_win_get_buf(vim.fn.win_getid())
-            local efm = vim.o.errorformat or vim.api.nvim_buf_get_option(bufnr, "errorformat")
+            -- Prepare qf options
+            local qf_opts = {
+                title = cmd,
+                lines = lines,
+            }
 
-            local ok, err = pcall(vim.fn.setqflist, {}, " ",
-                {
-                    title = cmd,
-                    lines = lines,
-                    efm = efm
-                }
-            )
-            if not ok then
-                vim.fn.writefile({"Error in setqflist: " .. err}, "/tmp/async_make_debug.txt", "a")
-                vim.g.async_make_status = '[setqflist error]'
+            -- Only pass efm if we actually found a pattern to avoid E378
+            if efm and efm ~= "" then
+                qf_opts.efm = efm
+            end
+
+            -- Populate list
+            vim.fn.setqflist({}, " ", qf_opts)
+
+            -- Calculate build duration
+            local elapsed_ms = (vim.uv.hrtime() - start_time) / 1e6
+            local duration = elapsed_ms > 1000
+                and string.format("%.2fs", elapsed_ms / 1000)
+                or string.format("%dms", elapsed_ms)
+
+            -- Check for errors that matched the errorformat
+            local qflist = vim.fn.getqflist()
+            local valid_errors = 0
+            for _, item in ipairs(qflist) do
+                if item.valid == 1 then valid_errors = valid_errors + 1 end
+            end
+
+            if valid_errors > 0 then
+                vim.g.async_make_status = string.format('[%d alerts (%s)]', valid_errors, duration)
+                vim.cmd("copen")
+                -- Jump to first error if the build failed
+                if exit_code ~= 0 then
+                    pcall(vim.cmd, "cfirst")
+                end
+            elseif exit_code ~= 0 then
+                -- Build failed but no matches found in output
+                vim.g.async_make_status = string.format('[Failed (%s)]', duration)
+                if M.current_job then
+                    vim.cmd("copen")
+                else
+                    vim.g.async_make_status = '[Build cancelled]'
+                end
             else
-                local end_time = os.time() + os.clock() % 1
-                local elapsed = end_time - start_time
-                local minutes = math.floor(elapsed / 60)
-                local seconds = elapsed % 60
-
-                local duration
-                if minutes > 0 then
-                    duration = string.format("%dm %.2fs", minutes, seconds)
-                else
-                    duration = string.format("%.2fs", seconds)
-                end
-
-                -- If there are any items in the quickfix list, open quickfix window
-                local qflist = vim.fn.getqflist()
-                if #qflist > 0 then
-                    vim.g.async_make_status = '[' .. #qflist .. ' build alerts (' .. duration .. ')]'
-                    vim.api.nvim_command("copen")
-                    vim.api.nvim_command("cfirst")
-                else
-                    vim.api.nvim_command("cclose")
-                    vim.g.async_make_status = '[Built in ' .. duration .. ']'
-                end
+                -- Successful build
+                vim.cmd("cclose")
+                vim.g.async_make_status = string.format('[Built in %s]', duration)
             end
 
-            -- clear status after 30s
+            -- Cleanup status line after 15 seconds
             vim.defer_fn(function()
-              vim.g.async_make_status = ''
-            end, 30000)
+                if not M.current_job then vim.g.async_make_status = "" end
+            end, 15000)
 
-            vim.api.nvim_command("doautocmd QuickFixCmdPost")
+            vim.api.nvim_exec_autocmds("QuickFixCmdPost", { pattern = "make" })
         end
-    end
+    })
 
-    local job_id = vim.fn.jobstart(
-        cmd,
-        {
-            on_stderr = on_event,
-            on_stdout = on_event,
-            on_exit = on_event,
-            stdout_buffered = true,
-            stderr_buffered = true
-        }
-    )
-    if job_id == 0 then
-        vim.notify("Failed to start job")
-    elseif job_id == -1 then
-        vim.notify("Invalid command or executable not found")
+    if M.current_job <= 0 then
+        vim.notify("AsyncMake: Failed to start", vim.log.levels.ERROR)
+        M.current_job = nil
+        vim.g.async_make_status = ""
     end
 end
 
