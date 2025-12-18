@@ -1,16 +1,23 @@
 local M = {}
 
--- State management - store current job ID to allow cancellation.
+-- State management
 M.current_job = nil
 M.ui = {
     timer = nil,
     buf = nil,
     win = nil,
+    augroup = nil, -- Added to track the resize handler
     frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" },
     idx = 1
 }
 
 local function stop_spinner()
+    -- Clean up the resize handler
+    if M.ui.augroup then
+        vim.api.nvim_del_augroup_by_id(M.ui.augroup)
+        M.ui.augroup = nil
+    end
+
     if M.ui.timer then
         M.ui.timer:stop()
         M.ui.timer:close()
@@ -26,15 +33,21 @@ local function stop_spinner()
     M.ui.buf = nil
 end
 
+-- Helper to calculate position based on current editor size
+local function get_spinner_pos()
+    -- row: vim.o.lines - 1 (cmdline) - 1 (statusline) - 1 (height of float)
+    -- If laststatus=3 (global statusline) or 2, we account for it.
+    local row = vim.o.lines - (vim.o.laststatus > 0 and 3 or 2)
+    local col = vim.o.columns
+    return row, col
+end
+
 local function start_spinner()
     stop_spinner()
 
     M.ui.buf = vim.api.nvim_create_buf(false, true)
 
-    -- Calculate position: Bottom Right, above status line
-    -- row: vim.o.lines - 1 (cmdline) - 1 (statusline) - 1 (height of float)
-    local row = vim.o.lines - (vim.o.laststatus > 0 and 3 or 2)
-    local col = vim.o.columns -- anchor "SE" handles the offset
+    local row, col = get_spinner_pos()
 
     local opts = {
         relative = "editor",
@@ -51,10 +64,25 @@ local function start_spinner()
 
     M.ui.win = vim.api.nvim_open_win(M.ui.buf, false, opts)
 
-    -- Set window options for transparency and styling
-    -- winblend: 0 (opaque) to 100 (transparent). Requires termguicolors.
+    -- Set window options
     vim.api.nvim_set_option_value("winblend", 20, { win = M.ui.win })
     vim.api.nvim_set_option_value("winhl", "Normal:MsgArea", { win = M.ui.win })
+
+    -- Add Autocommand to handle Resize events
+    M.ui.augroup = vim.api.nvim_create_augroup("AsyncMakeSpinner", { clear = true })
+    vim.api.nvim_create_autocmd("VimResized", {
+        group = M.ui.augroup,
+        callback = function()
+            if M.ui.win and vim.api.nvim_win_is_valid(M.ui.win) then
+                local new_row, new_col = get_spinner_pos()
+                vim.api.nvim_win_set_config(M.ui.win, {
+                    relative = "editor",
+                    row = new_row,
+                    col = new_col,
+                })
+            end
+        end,
+    })
 
     M.ui.timer = vim.uv.new_timer()
     M.ui.timer:start(0, 100, vim.schedule_wrap(function()
@@ -102,7 +130,6 @@ function M.make(arg)
     end
 
     -- Expand the command and append arguments
-    -- expandcmd handles things like % (current file)
     local expanded_args = vim.fn.expand(arg)
     local cmd = vim.fn.expandcmd(makeprg)
     if expanded_args ~= "" then
