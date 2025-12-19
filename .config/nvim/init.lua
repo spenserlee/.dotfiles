@@ -1725,6 +1725,13 @@ vim.api.nvim_create_autocmd("FileType", {
     end,
 })
 
+-- Disable global <CR> change inner word keybind in special buffer types
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "qf", "help", "man" },
+  callback = function()
+    vim.keymap.set("n", "<CR>", "<CR>", { buffer = true })
+  end,
+})
 
 -- =============================================================================
 -- 6. USER COMMANDS & FUNCTIONS
