@@ -32,6 +32,7 @@ vim.opt.hlsearch = true                -- Highlight search results
 vim.opt.splitbelow = true              -- New panes appear more natural
 vim.opt.splitright = true
 vim.opt.background = "dark"
+-- vim.opt.background = "light"
 vim.opt.signcolumn = "yes"
 vim.opt.laststatus = 3                 -- Global statusline (only one at bottom)
 
@@ -106,6 +107,7 @@ require("lazy").setup({
             everforest.setup({
                 float_style = "dim",
                 background = "hard",
+                -- background = "soft",
                 italics = true,
                 -- transparent_background_level = 0,
                 -- disable_italic_comments = false
@@ -253,7 +255,7 @@ require("lazy").setup({
     },
     {
         -- For unifying TMUX pane / VIM split navigation.
-        'mrjones2014/smart-splits.nvim',
+        "mrjones2014/smart-splits.nvim",
         lazy = false,
         dependencies = {
             {
@@ -1815,17 +1817,41 @@ vim.api.nvim_create_user_command(
 )
 
 vim.api.nvim_create_user_command('ZoomToggle', function()
-    local t_zoomed = vim.t.zoomed
-    if t_zoomed then
-        vim.cmd(vim.t.zoom_winrestcmd)
+    local bufresize = require("bufresize")
+
+    if vim.t.zoomed then
+        -- Restore original split layout
+        if vim.t.zoom_winrestcmd then
+            vim.cmd(vim.t.zoom_winrestcmd)
+        else
+            vim.cmd("wincmd =") -- Fallback to equal splits
+        end
         vim.t.zoomed = false
     else
+        -- Save current layout and maximize
         vim.t.zoom_winrestcmd = vim.fn.winrestcmd()
-        vim.cmd("resize")
-        vim.cmd("vertical resize")
+        vim.cmd("wincmd _")
+        vim.cmd("wincmd |")
         vim.t.zoomed = true
     end
+
+    -- Sync the new layout state with bufresize
+    bufresize.register()
+
+    -- Prevent cmdheight drift
+    -- Scheduling ensures the layout has settled before we force the height
+    vim.schedule(function()
+        vim.opt.cmdheight = 1
+    end)
 end, {})
+
+-- Fix cmdheight increasing when nvim tmux split is changed
+vim.api.nvim_create_autocmd("VimResized", {
+    group = vim.api.nvim_create_augroup("FixCmdHeight", { clear = true }),
+    callback = function()
+        vim.opt.cmdheight = 1
+    end,
+})
 
 function QuickfixJump(direction)
     local info = vim.fn.getqflist({ idx = 0, items = 0 })
