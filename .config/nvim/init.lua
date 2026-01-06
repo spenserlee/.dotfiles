@@ -91,7 +91,7 @@ require("lazy").setup({
     {
         -- Load colorscheme first.
         "ellisonleao/gruvbox.nvim",
-        disable = true,
+        enabled = false,
         lazy = false,
         priority = 1000,
         init = function()
@@ -128,6 +128,7 @@ require("lazy").setup({
                 colours_override = function (palette)
                     -- hard-er
                     -- source: <https://gist.github.com/suppayami/7d427d116b97564d1c565a7aed092d08>
+                    -- <https://gist.github.com/suppayami/7d427d116b97564d1c565a7aed092d08?permalink_comment_id=4516047#gistcomment-4516047>
                     palette.bg0 = "#1E2327" -- replaces bg0 = "#272e33",
                 end
             })
@@ -162,6 +163,39 @@ require("lazy").setup({
 
             require("lualine").setup({
                 sections = {
+                    lualine_b = {
+                        {
+                            'branch',
+                            icon = '',
+                            fmt = function(str)
+                                -- If lualine returns a 6-character hex string, we are in detached HEAD
+                                if str:match("^%x%x%x%x%x%x$") then
+                                    -- Check if we have a cached tag for this specific hash in this buffer
+                                    if vim.b.lualine_git_tag and vim.b.lualine_git_tag_hash == str then
+                                        return vim.b.lualine_git_tag
+                                    end
+
+                                    -- --exact-match ensures we don't get "tag~N" relative names
+                                    local cmd = "git describe --tags --exact-match 2>/dev/null"
+                                    local handle = io.popen(cmd)
+                                    if handle then
+                                        local name = handle:read("*l")
+                                        handle:close()
+
+                                        if name and name ~= "" then
+                                            local display = "@" .. name
+                                            vim.b.lualine_git_tag = display
+                                            vim.b.lualine_git_tag_hash = str
+                                            return display
+                                        end
+                                    end
+                                end
+                                return str
+                            end
+                        },
+                        'diff',
+                        'diagnostics'
+                    },
                     lualine_c = {
                         {
                             'filename',
