@@ -105,12 +105,14 @@ function parse_git_branch {
         local BR=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD 2> /dev/null)
         if [ "$BR" == HEAD ]
         then
-            # revision isn't a named branch, try to get tag name
-            local NM=$(git name-rev --name-only HEAD 2> /dev/null)
-            # revision isn't a tag, use shortened hash
-            if [ "$NM" != undefined ]
-            then echo -n "@$NM"
-            else git rev-parse --short HEAD 2> /dev/null
+            # Try to get exact tag name
+            local NM=$(git describe --tags --exact-match 2> /dev/null)
+            if [ -n "$NM" ]
+            then
+                echo -n "@$NM"
+            else
+                # Not a tag, show shortened hash
+                git rev-parse --short HEAD 2> /dev/null
             fi
         else
             echo -n $BR
