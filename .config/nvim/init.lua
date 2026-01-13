@@ -372,6 +372,23 @@ require("lazy").setup({
             {"<leader>c", "<cmd>FzfLua commands<cr>", desc = "FZF commands"},
             {"<leader>s", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "LSP Document Symbols"},
             {"<leader>on", "<cmd>lua require'fzf-lua'.files({ prompt='notes> ', cwd='~/notes' })<cr>", desc = "FZF Note Files"},
+            {"<leader>oN", function()
+                vim.ui.input({ prompt = "New note name: " }, function(name)
+                    if not name or name == "" then
+                        return
+                    end
+
+                    local notes_dir = vim.fn.expand("~/notes")
+                    local path = notes_dir .. "/" .. name
+
+                    if not path:match("%.%w+$") then
+                        path = path .. ".md"
+                    end
+
+                    vim.fn.mkdir(notes_dir, "p")
+                    vim.cmd.edit(vim.fn.fnameescape(path))
+                end)
+            end, desc = "New Note (create & edit)"},
         },
     },
     {
