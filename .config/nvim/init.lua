@@ -733,7 +733,7 @@ require("lazy").setup({
         -- Navigate by eye.
         -- 's' becomes search forward
         -- 'S' becomes search backwards
-        "ggandor/leap.nvim",
+        url = "https://codeberg.org/andyg/leap.nvim",
         config = function()
             vim.keymap.set({'n', 'x', 'o'}, 's',  '<Plug>(leap-forward)')
             vim.keymap.set({'n', 'x', 'o'}, 'S',  '<Plug>(leap-backward)')
@@ -765,15 +765,6 @@ require("lazy").setup({
             library = {
                 -- Optional: Add paths for third-party libraries if needed (e.g., luv for vim.uv)
                 -- { path = "luvit-meta/library", words = { "vim%.uv" } },
-            },
-        },
-    },
-    {
-        -- Some basic default client configuration setings for NVIM LSP.
-        "neovim/nvim-lspconfig",
-        dependencies = {
-            {
-                "saghen/blink.cmp"
             },
         },
     },
@@ -883,24 +874,29 @@ require("lazy").setup({
         opts_extend = { "sources.default" }
     },
     {
-        -- Package manager for Neovim, installs LSP/DAP/Lint servers automatically.
-        "williamboman/mason.nvim",
-        build = ":MasonUpdate",
-        cmd = {
-            "Mason",
-            "MasonInstall",
-            "MasonUninstall",
-            "MasonUninstallAll",
-            "MasonLog",
-        },
-        dependencies = {
-            "neovim/nvim-lspconfig",
-            "williamboman/mason-lspconfig.nvim",
-            "WhoIsSethDaniel/mason-tool-installer.nvim",
-            "mfussenegger/nvim-dap",
-            "jay-babu/mason-nvim-dap.nvim",
-        },
+        -- LSP server configurations (provides the base `lsp/*.lua` configs that
+        -- `vim.lsp.config`/`vim.lsp.enable` consume). Loaded eagerly so the
+        -- native LSP client can start servers on the first file you open.
+        --
+        -- NOTE (Nvim 0.12): We no longer use `require('lspconfig').xxx.setup{}`
+        -- (deprecated). Configs are customized via `vim.lsp.config()` and
+        -- activated via `vim.lsp.enable()` (both native to 0.11+).
+        "neovim/nvim-lspconfig",
+        event = { "BufReadPre", "BufNewFile" },
+        dependencies = { "saghen/blink.cmp" },
         config = function()
+            -- Register blink.cmp completion capabilities for every server.
+            -- (blink.cmp also does this automatically, but being explicit is
+            -- harmless and documents intent.)
+            local ok, blink = pcall(require, "blink.cmp")
+            if ok then
+                vim.lsp.config('*', {
+                    capabilities = blink.get_lsp_capabilities(),
+                })
+            end
+
+            -- Per-server overrides. These are merged on top of the base configs
+            -- shipped by nvim-lspconfig (in its `lsp/` directory).
             vim.lsp.config('lua_ls', {
                 settings = {
                     Lua = {
@@ -940,6 +936,43 @@ require("lazy").setup({
                 },
             })
 
+            -- Activate the servers. `vim.lsp.enable()` starts them for matching
+            -- filetypes (and is idempotent). mason-lspconfig's automatic_enable
+            -- also calls this for installed servers, but enabling here means LSP
+            -- works even before mason has loaded.
+            -- NOTE: rust_analyzer is intentionally omitted; rustaceanvim owns it.
+            vim.lsp.enable({
+                "bashls",
+                "clangd",
+                "dockerls",
+                "lua_ls",
+                "pylsp",
+                "zls",
+            })
+        end,
+    },
+    {
+        -- Package manager for Neovim, installs LSP/DAP/Lint servers automatically.
+        "williamboman/mason.nvim",
+        build = ":MasonUpdate",
+        -- Load on startup (deferred) so ensure_installed runs and tools stay
+        -- installed without requiring you to manually invoke a :Mason command.
+        event = "VeryLazy",
+        cmd = {
+            "Mason",
+            "MasonInstall",
+            "MasonUninstall",
+            "MasonUninstallAll",
+            "MasonLog",
+        },
+        dependencies = {
+            "neovim/nvim-lspconfig",
+            "williamboman/mason-lspconfig.nvim",
+            "WhoIsSethDaniel/mason-tool-installer.nvim",
+            "mfussenegger/nvim-dap",
+            "jay-babu/mason-nvim-dap.nvim",
+        },
+        config = function()
             local mason = require("mason")
             local mason_lspconfig = require("mason-lspconfig")
             local mason_tool_installer = require("mason-tool-installer")
@@ -956,7 +989,11 @@ require("lazy").setup({
                 },
             })
 
-            -- Bridge Mason with lspconfig.
+            -- Bridge Mason with the native LSP client.
+            -- mason-lspconfig v2 removed `handlers`/`setup_handlers`. It only
+            -- installs servers + (optionally) auto-enables them. We enable the
+            -- servers explicitly in the nvim-lspconfig spec via vim.lsp.enable(),
+            -- so automatic_enable is turned off here to avoid double-enabling.
             mason_lspconfig.setup({
                 ensure_installed = {
                     "bashls",
@@ -966,6 +1003,7 @@ require("lazy").setup({
                     "pylsp",
                     "zls",
                 },
+                automatic_enable = false,
             })
 
             -- Setup for formatters, linters, and debug adapters.
@@ -1076,13 +1114,64 @@ require("lazy").setup({
     {
         -- Provide much better syntax highlighting + dynamic code presentations
         -- based on cursor position and scope.
+        --
+        -- NOTE (Nvim 0.12 migration): This now tracks the `main` branch, which
+        -- is a full rewrite. The old `master` branch is frozen and crashes on
+        -- 0.12. The new plugin ONLY manages parser install/update; highlight,
+        -- indent and folding are enabled by us via a FileType autocmd below.
+        --
+        -- Requires the `tree-sitter` CLI on your PATH to compile parsers.
+        -- Install via: `cargo install tree-sitter-cli` (or your package manager,
+        -- or `npm install -g tree-sitter-cli`).
         "nvim-treesitter/nvim-treesitter",
+        branch = "main",
+        lazy = false, -- main branch does not support lazy-loading
         build = ":TSUpdate",
-        event = { "BufReadPre" },
-        cmd = { "TSInstall", "TSUpdate" },
         dependencies = {
-            "nvim-treesitter/nvim-treesitter-textobjects",
-            "RRethy/nvim-treesitter-textsubjects",
+            {
+                "nvim-treesitter/nvim-treesitter-textobjects",
+                branch = "main",
+                config = function()
+                    require("nvim-treesitter-textobjects").setup({
+                        select = {
+                            lookahead = true,
+                        },
+                    })
+
+                    -- Select textobjects (operator-pending + visual):
+                    --   af/if : a function / inner function
+                    --   ac/ic : a class / inner class
+                    --   aa/ia : a parameter / inner parameter
+                    local select = require("nvim-treesitter-textobjects.select").select_textobject
+                    local map = function(key, query)
+                        vim.keymap.set({ "x", "o" }, key, function()
+                            select(query, "textobjects")
+                        end, { silent = true })
+                    end
+                    map("af", "@function.outer")
+                    map("if", "@function.inner")
+                    map("ac", "@class.outer")
+                    map("ic", "@class.inner")
+                    map("aa", "@parameter.outer")
+                    map("ia", "@parameter.inner")
+
+                    -- Move between functions:
+                    --   ]m / [m : next / prev function start
+                    -- (Avoids ]c/[c which gitsigns uses for git hunks.)
+                    local move = require("nvim-treesitter-textobjects.move")
+                    vim.keymap.set({ "n", "x", "o" }, "]m", function()
+                        move.goto_next_start("@function.outer", "textobjects")
+                    end, { silent = true })
+                    vim.keymap.set({ "n", "x", "o" }, "[m", function()
+                        move.goto_previous_start("@function.outer", "textobjects")
+                    end, { silent = true })
+                end,
+            },
+            -- NOTE: nvim-treesitter-textsubjects (`;`, `i;`, `.`) was removed
+            -- during the 0.12 migration. It depends on the old, removed
+            -- `nvim-treesitter.query` module and breaks on the `main` branch.
+            -- Alternatives on 0.12: native incremental selection (v_an / v_in /
+            -- v_]n / v_[n) and the @function/@class textobjects mapped above.
             {
                 "nvim-treesitter/nvim-treesitter-context",
                 config = function()
@@ -1100,109 +1189,109 @@ require("lazy").setup({
             },
         },
         config = function()
-            -- TODO: how to suppress big error '------' that shows up when opening ft
-            -- without a treesitter installed?
-            require("nvim-treesitter.configs").setup({
-                ensure_installed = {
-                    "c",
-                    "cpp",
-                    "bash",
-                    "git_config",
-                    "git_rebase",
-                    "gitattributes",
-                    "gitcommit",
-                    "gitignore",
-                    "ssh_config",
-                    "diff",
-                    "lua",
-                    "vim",
-                    "vimdoc",
-                    "query",
-                    "rust",
-                    "make",
-                    "markdown",
-                    "markdown_inline",
-                    "python",
-                    "meson",
-                    "zig",
-                    "toml",
-                    "tmux",
-                },
-                with_sync = true,
-                -- Install parsers synchronously (only applied to `ensure_installed`)
-                sync_install = false,
-                -- Automatically install missing parsers when entering buffer
-                -- Recommendation: set to false if you don't have `tree-sitter` CLI installed locally
-                auto_install = false,
-                ignore_install = {},
-                modules = {},
-                highlight = {
-                    enable = true,
-                    disable = function(_, buf)
-                        local max_filesize = 100 * 1024 -- 100 KB
-                        local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-                        if ok and stats and stats.size > max_filesize then
-                            return true
-                        end
-                    end,
-                    -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-                    -- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-                    -- Using this option may slow down your editor, and you may see some duplicate highlights.
-                    -- Instead of true it can also be a list of languages
-                    additional_vim_regex_highlighting = false,
-                },
+            local ts = require("nvim-treesitter")
+
+            -- Parser install directory (default; kept explicit).
+            ts.setup({
+                install_dir = vim.fn.stdpath("data") .. "/site",
             })
+
+            -- The parsers we want available. On `main` there is no
+            -- `ensure_installed` option; we install them ourselves, skipping
+            -- ones already present so startup stays fast.
+            local ensure_installed = {
+                "c",
+                "cpp",
+                "bash",
+                "git_config",
+                "git_rebase",
+                "gitattributes",
+                "gitcommit",
+                "gitignore",
+                "ssh_config",
+                "diff",
+                "lua",
+                "luadoc",
+                "vim",
+                "vimdoc",
+                "query",
+                "rust",
+                "make",
+                "markdown",
+                "markdown_inline",
+                "python",
+                "meson",
+                "zig",
+                "toml",
+                "tmux",
+            }
+
+            local installed = require("nvim-treesitter.config").get_installed()
+            local to_install = vim.iter(ensure_installed)
+                :filter(function(parser)
+                    return not vim.tbl_contains(installed, parser)
+                end)
+                :totable()
+            if #to_install > 0 then
+                ts.install(to_install)
+            end
 
             -- Folding keybinds:
             -- * zR: open all folds
             -- * zM: close all folds
             -- * za: toggle fold at cursor
-            -- * zA: toggle fold and its children at curso
+            -- * zA: toggle fold and its children at cursor
             -- * zj: move to next fold
             -- * zk: move to prev fold
 
-            -- Folding configuration directly inside config
-            local function setup_folding()
-                -- Default to Treesitter folding
-                vim.opt.foldmethod = "expr"
-                vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
-                vim.opt.foldcolumn = "0"
-                vim.opt.foldlevel = 99
-                vim.opt.foldtext = ""
-                vim.opt.foldnestmax = 4
-                vim.opt.foldlevelstart = 99
+            -- Global fold defaults. Per-buffer foldexpr/foldmethod are set in
+            -- the FileType autocmd below (only when a parser is available).
+            vim.opt.foldcolumn = "0"
+            vim.opt.foldlevel = 99
+            vim.opt.foldtext = ""
+            vim.opt.foldnestmax = 4
+            vim.opt.foldlevelstart = 99
 
-                -- Function to check if LSP provides folding and set it up
-                local function setup_lsp_folding(client, bufnr)
-                    if client.server_capabilities.foldingRangeProvider then
-                        vim.api.nvim_buf_set_option(bufnr, "foldmethod", "expr")
-                        vim.api.nvim_buf_set_option(bufnr, "foldexpr", "nvim_treesitter#foldexpr()")
+            local ts_max_filesize = 100 * 1024 -- 100 KB
+
+            -- Enable treesitter highlighting, indentation and folding per
+            -- buffer. On `main` these are no longer modules; we wire them up
+            -- ourselves whenever a parser exists for the filetype.
+            vim.api.nvim_create_autocmd("FileType", {
+                group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true }),
+                callback = function(args)
+                    local buf = args.buf
+                    local ft = vim.bo[buf].filetype
+
+                    -- Map filetype -> treesitter language (handles e.g. aliases).
+                    local lang = vim.treesitter.language.get_lang(ft) or ft
+
+                    -- Skip if no parser is installed/available for this language.
+                    -- `language.add` returns truthy on success; pcall guards the
+                    -- case where it errors for a missing parser.
+                    local has_parser = pcall(vim.treesitter.language.add, lang)
+                    if not has_parser then
+                        return
                     end
-                end
 
-                -- Setup LSP folding on attach
-                vim.api.nvim_create_autocmd("LspAttach", {
-                    callback = function(args)
-                        local client = vim.lsp.get_client_by_id(args.data.client_id)
-                        setup_lsp_folding(client, args.buf)
-                    end,
-                })
+                    -- Skip very large files for performance.
+                    local fname = vim.api.nvim_buf_get_name(buf)
+                    local ok, stats = pcall((vim.uv or vim.loop).fs_stat, fname)
+                    if ok and stats and stats.size > ts_max_filesize then
+                        return
+                    end
 
-                -- Revert to syntax folding if no tree sitter.
-                vim.api.nvim_create_autocmd({ "FileType" }, {
-                    callback = function()
-                        if require("nvim-treesitter.parsers").has_parser() then
-                            vim.opt.foldmethod = "expr"
-                            vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
-                        else
-                            vim.opt.foldmethod = "syntax"
-                        end
-                    end,
-                })
+                    -- Highlighting (also disables legacy regex syntax).
+                    pcall(vim.treesitter.start, buf, lang)
 
-            end
+                    -- Native treesitter folding (replaces nvim_treesitter#foldexpr).
+                    vim.wo[0][0].foldmethod = "expr"
+                    vim.wo[0][0].foldexpr = "v:lua.vim.treesitter.foldexpr()"
 
-            setup_folding()
+                    -- Experimental treesitter-based indentation.
+                    vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+                end,
+            })
         end,
     },
     {
@@ -1477,17 +1566,17 @@ require("lazy").setup({
             - Think step by step.
             ]]
 
-            -- local replace_prompt = [[
-            -- You are an AI programming assistant integrated into a code editor.
-            -- Follow the instructions in the code comments.
-            -- Generate code only.
-            -- Do not output markdown backticks like this ```.
-            -- Think step by step.
-            -- If you must speak, do so in comments.
-            -- Generate valid code only.
-            -- ]]
-
-            local replace_prompt = "You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Never include backticks or markdown formatting in your response. Any comment asking for changes should be removed after being satisfied. Other comments should be left alone."
+            local replace_prompt = [[
+            You are an AI programming assistant integrated into a code editor.
+            Your current purpose is to replace, refactor or improve the section of code you are sent, following the comments.
+            - Do not talk at all.
+            - Only output valid code.
+            - Never include backticks or markdown formatting in your response.
+            - Any comment asking for changes should be removed after being satisfied.
+            - Other comments should be left alone.
+            - If the new code is complex, add comments.
+            - Be extremely concise. Sacrifice grammar for the sake of concision.
+            ]]
 
             local dingllm = require('dingllm')
 
@@ -1681,7 +1770,7 @@ vim.api.nvim_create_autocmd("TextYankPost", {
     group = highlight_yank_group,
     pattern = "*",
     callback = function()
-        vim.highlight.on_yank({
+        vim.hl.on_yank({
             higroup = (vim.fn.hlexists("HighlightedyankRegion") > 0 and "HighlightedyankRegion" or "IncSearch"),
             timeout = 500
         })
