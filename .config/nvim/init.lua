@@ -1346,7 +1346,7 @@ require("lazy").setup({
         "mfussenegger/nvim-dap",
         dependencies = {
             {
-                -- TODO: try out nvim-dap-view instead.
+                -- Full-featured DAP UI with split layouts.
                 "rcarriga/nvim-dap-ui",
                 opts = {
                     layouts = { {
@@ -1385,12 +1385,137 @@ require("lazy").setup({
                     "theHamsta/nvim-dap-virtual-text",
                 }
             },
+            {
+                -- Minimal, modern DAP UI (single floating/tiled window).
+                -- Toggle between this and nvim-dap-ui with :DapToggleUI.
+                "igorlfs/nvim-dap-view",
+                version = "1.*",
+                opts = {
+                    -- Remap the Scopes winbar section key from "S" to "o"
+                    -- (for "objects/locals") to avoid conflict with leap.nvim's
+                    -- default `S` (leap-backward).
+                    winbar = {
+                        base_sections = {
+                            scopes = { label = "Scopes", keymap = "o" },
+                        },
+                    },
+                    windows = {
+                        -- Section views (Scopes/Watches/etc) on the left,
+                        -- terminal/console output on the right.
+                        terminal = {
+                            position = "right",
+                        },
+                    },
+                },
+            },
             "nvim-neotest/nvim-nio",
             "williamboman/mason.nvim",
         },
         config = function()
             local dap = require("dap")
             local ui = require("dapui")
+
+            -- Track which DAP UI backend is active: "dapui" | "dapview"
+            vim.g.dap_ui_backend = vim.g.dap_ui_backend or "dapview"
+
+            -- Custom switchbuf: when stepping, jump to the source location in a
+            -- real code window, never a UI panel. dap-view's section windows set
+            -- 'winfixbuf', so the default 'uselast' can hit E1513 ("Cannot switch
+            -- buffer") if focus (or the previous window) is a dap-view panel.
+            dap.defaults.fallback.switchbuf = function(bufnr, line, column)
+                local api = vim.api
+
+                local function set_cursor(win)
+                    api.nvim_set_current_win(win)
+                    pcall(api.nvim_win_set_cursor, win, { line, math.max(column - 1, 0) })
+                    api.nvim_win_call(win, function() vim.cmd("normal! zv") end)
+                end
+
+                -- A window is usable if it has a normal buftype and isn't
+                -- buffer-fixed (i.e. not a dap-ui / dap-view panel).
+                local function is_code_win(win)
+                    local buf = api.nvim_win_get_buf(win)
+                    if vim.bo[buf].buftype ~= "" then
+                        return false
+                    end
+                    local ok, fixed = pcall(function() return vim.wo[win].winfixbuf end)
+                    if ok and fixed then
+                        return false
+                    end
+                    return true
+                end
+
+                -- 1. Current window, if it's already a code window.
+                local cur = api.nvim_get_current_win()
+                if is_code_win(cur) then
+                    api.nvim_win_set_buf(cur, bufnr)
+                    set_cursor(cur)
+                    return
+                end
+
+                -- 2. Any other code window already showing the target buffer.
+                for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+                    if is_code_win(win) and api.nvim_win_get_buf(win) == bufnr then
+                        set_cursor(win)
+                        return
+                    end
+                end
+
+                -- 3. Any other code window in the current tab.
+                for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+                    if is_code_win(win) then
+                        api.nvim_win_set_buf(win, bufnr)
+                        set_cursor(win)
+                        return
+                    end
+                end
+
+                -- 4. No usable window: open a split above the UI panels.
+                vim.cmd("topleft split")
+                local win = api.nvim_get_current_win()
+                api.nvim_win_set_buf(win, bufnr)
+                set_cursor(win)
+            end
+
+            -- Close any window/buffer showing nvim-dap's integrated terminal
+            -- (named "[dap-terminal] ..."). dap.terminate() leaves these open,
+            -- e.g. after debugging a Rust unit test.
+            local function close_dap_terminals()
+                for _, win in ipairs(vim.api.nvim_list_wins()) do
+                    local buf = vim.api.nvim_win_get_buf(win)
+                    local name = vim.api.nvim_buf_get_name(buf)
+                    if name:match("%[dap%-terminal%]") then
+                        pcall(vim.api.nvim_win_close, win, true)
+                    end
+                end
+                for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+                    local name = vim.api.nvim_buf_get_name(buf)
+                    if name:match("%[dap%-terminal%]") then
+                        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+                    end
+                end
+            end
+
+            -- Open/close helpers that respect the active backend.
+            local function dap_open()
+                if vim.g.dap_ui_backend == "dapview" then
+                    require("dap-view").open()
+                else
+                    ui.open()
+                end
+            end
+
+            -- close(): also hide the dap-view terminal/console and clean up any
+            -- leftover [dap-terminal] windows.
+            local function dapclose()
+                if vim.g.dap_ui_backend == "dapview" then
+                    -- `true` => hide_terminal: closes dap-view's console/term window too.
+                    pcall(function() require("dap-view").close(true) end)
+                else
+                    pcall(function() ui.close() end)
+                end
+                close_dap_terminals()
+            end
 
             -- Insert a conditional breakpoint. e.g.:
             -- :DapConditional "foo > 10"
@@ -1412,6 +1537,9 @@ require("lazy").setup({
             end, { desc = "Set conditional breakpoint" })
 
             -- Eval variable under cursor.
+            -- NOTE: dap-view handles eval through its scopes view (select a
+            -- variable to see its value), so <leader>; always uses dapui's
+            -- floating eval regardless of the active backend.
             vim.keymap.set("n", "<leader>;", function()
                 ui.eval(nil, { enter = true })
             end)
@@ -1427,12 +1555,45 @@ require("lazy").setup({
 
             vim.keymap.set("n", "<F10>", dap.restart)
 
-            dap.listeners.before.attach.dapui_config = function() ui.open() end
-            dap.listeners.before.launch.dapui_config = function() ui.open() end
-            dap.listeners.before.event_terminated.dapui_config = function() ui.close() end
-            dap.listeners.before.event_exited.dapui_config = function() ui.close() end
+            -- DAP event listeners: open/close the active UI backend.
+            dap.listeners.before.attach.dap_ui = function() dap_open() end
+            dap.listeners.before.launch.dap_ui = function() dap_open() end
+            -- Close UI + terminals when the session ends. Use `after` so the
+            -- adapter has finished tearing down before we clean up windows.
+            dap.listeners.after.event_terminated.dap_ui = function()
+                vim.schedule(dapclose)
+            end
+            dap.listeners.after.event_exited.dap_ui = function()
+                vim.schedule(dapclose)
+            end
+            dap.listeners.after.disconnect.dap_ui = function()
+                vim.schedule(dapclose)
+            end
 
-            -- Fixup DAP UI after window resize.
+            -- Toggle between nvim-dap-ui and nvim-dap-view.
+            -- Closes the current UI, swaps the backend, then opens the new one.
+            -- Works both with and without an active debug session.
+            vim.api.nvim_create_user_command('DapToggleUI', function()
+                local current = vim.g.dap_ui_backend or "dapview"
+                local next_backend = current == "dapui" and "dapview" or "dapui"
+
+                -- Close whichever UI is currently active.
+                if current == "dapui" then
+                    pcall(function() ui.close() end)
+                else
+                    pcall(function() require("dap-view").close(true) end)
+                end
+
+                vim.g.dap_ui_backend = next_backend
+                vim.notify("DAP UI backend: nvim-" .. next_backend, vim.log.levels.INFO)
+
+                -- Re-open with the new backend if a session is running.
+                if dap.session() then
+                    dap_open()
+                end
+            end, {})
+
+            -- Manual reset (kept for emergencies).
             vim.api.nvim_create_user_command('DapUiReset', function()
                 ui.toggle({reset = true})
                 ui.toggle({reset = true})
@@ -1440,7 +1601,16 @@ require("lazy").setup({
 
             -- Close DAP UI splits when debugging ends (and it doesn't close automatically like it should...)
             vim.api.nvim_create_user_command('DapUiClose', function()
-                ui.close()
+                dapclose()
+            end, {})
+
+            -- Terminate the debug session and close the UI + terminals.
+            -- The event listeners above also call dapclose() on terminate, but
+            -- this command works even if the adapter doesn't emit those events.
+            vim.api.nvim_create_user_command('DapStop', function()
+                dap.terminate(nil, nil, function()
+                    vim.schedule(dapclose)
+                end)
             end, {})
 
             local home_path = os.getenv("HOME") .. "/"
@@ -1990,6 +2160,19 @@ vim.api.nvim_create_autocmd("VimResized", {
     group = vim.api.nvim_create_augroup("FixCmdHeight", { clear = true }),
     callback = function()
         vim.opt.cmdheight = 1
+    end,
+})
+
+-- Auto-resize nvim-dap-ui when the editor is resized (fixes squished splits
+-- when resizing tmux panes). Placed in global autocommands so it's always
+-- registered, not reliant on nvim-dap having loaded yet.
+vim.api.nvim_create_autocmd("VimResized", {
+    group = vim.api.nvim_create_augroup("DapUiAutoResize", { clear = true }),
+    callback = function()
+        if vim.g.dap_ui_backend ~= "dapui" then return end
+        local ok, dapui = pcall(require, "dapui")
+        if not ok then return end
+        dapui.open({ reset = true })
     end,
 })
 
