@@ -28,6 +28,15 @@ Setting up a new machine:
         xargs -I{} mv {} .config-backup/{}
     dotfig checkout
     dotfig config --local status.showUntrackedFiles no
+    dotfig remote -v
+    dotfig config --get-all remote.origin.fetch
+    dotfig show-ref
+    dotfig config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+    dotfig config --get-all remote.origin.fetch
+    dotfig fetch origin
+    dotfig branch -a
+    dotfig checkout work
+    dotfig branch --set-upstream-to=origin/work work
 
 Due to bare repo, may require explicit git config for new branches:
 
