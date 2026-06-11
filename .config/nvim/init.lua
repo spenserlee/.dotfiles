@@ -2142,13 +2142,13 @@ vim.api.nvim_create_autocmd("VimResized", {
     end,
 })
 
--- Auto-resize nvim-dap-ui when the editor is resized (fixes squished splits
--- when resizing tmux panes). Placed in global autocommands so it's always
--- registered, not reliant on nvim-dap having loaded yet.
+-- Resize nvim-dap-ui when the editor is resized but only if it's actually
+-- open and there is an active DAP session (avoids re-opening after :DapStop).
 vim.api.nvim_create_autocmd("VimResized", {
     group = vim.api.nvim_create_augroup("DapUiAutoResize", { clear = true }),
     callback = function()
         if vim.g.dap_ui_backend ~= "dapui" then return end
+        if not require("dap").session() then return end
         local ok, dapui = pcall(require, "dapui")
         if not ok then return end
         dapui.open({ reset = true })
