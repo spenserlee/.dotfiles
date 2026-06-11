@@ -59,10 +59,10 @@ vim.opt.makeprg = "./code/build.sh"
 vim.o.errorformat = [[%f(%l):%m,%f:%l:%m]]
 
 -- Window navigation (fallback if smart-splits not loaded/used)
-vim.keymap.set("n", "<M-j>", "<C-W>j", { noremap = true })
-vim.keymap.set("n", "<M-k>", "<C-W>k", { noremap = true })
-vim.keymap.set("n", "<M-h>", "<C-W>h", { noremap = true })
-vim.keymap.set("n", "<M-l>", "<C-W>l", { noremap = true })
+vim.keymap.set("n", "<M-j>", "<C-W>j", { noremap = true, desc = "Window down" })
+vim.keymap.set("n", "<M-k>", "<C-W>k", { noremap = true, desc = "Window up" })
+vim.keymap.set("n", "<M-h>", "<C-W>h", { noremap = true, desc = "Window left" })
+vim.keymap.set("n", "<M-l>", "<C-W>l", { noremap = true, desc = "Window right" })
 
 -- =============================================================================
 -- 2. LAZY.NVIM BOOTSTRAP
@@ -318,16 +318,16 @@ require("lazy").setup({
                 },
             })
             -- moving between splits: ALT+<hjkl>
-            vim.keymap.set('n', '<M-h>', require('smart-splits').move_cursor_left)
-            vim.keymap.set('n', '<M-j>', require('smart-splits').move_cursor_down)
-            vim.keymap.set('n', '<M-k>', require('smart-splits').move_cursor_up)
-            vim.keymap.set('n', '<M-l>', require('smart-splits').move_cursor_right)
-            vim.keymap.set('n', '<M-\\>', require('smart-splits').move_cursor_previous)
+            vim.keymap.set('n', '<M-h>', require('smart-splits').move_cursor_left, { desc = "Split left" })
+            vim.keymap.set('n', '<M-j>', require('smart-splits').move_cursor_down, { desc = "Split down" })
+            vim.keymap.set('n', '<M-k>', require('smart-splits').move_cursor_up, { desc = "Split up" })
+            vim.keymap.set('n', '<M-l>', require('smart-splits').move_cursor_right, { desc = "Split right" })
+            vim.keymap.set('n', '<M-\\>', require('smart-splits').move_cursor_previous, { desc = "Split previous" })
             -- resizing splits: ALT+<HJKL>
-            vim.keymap.set('n', '<M-S-h>', require('smart-splits').resize_left)
-            vim.keymap.set('n', '<M-S-j>', require('smart-splits').resize_down)
-            vim.keymap.set('n', '<M-S-k>', require('smart-splits').resize_up)
-            vim.keymap.set('n', '<M-S-l>', require('smart-splits').resize_right)
+            vim.keymap.set('n', '<M-S-h>', require('smart-splits').resize_left, { desc = "Resize split left" })
+            vim.keymap.set('n', '<M-S-j>', require('smart-splits').resize_down, { desc = "Resize split down" })
+            vim.keymap.set('n', '<M-S-k>', require('smart-splits').resize_up, { desc = "Resize split up" })
+            vim.keymap.set('n', '<M-S-l>', require('smart-splits').resize_right, { desc = "Resize split right" })
         end
     },
     {
@@ -389,6 +389,25 @@ require("lazy").setup({
                     vim.cmd.edit(vim.fn.fnameescape(path))
                 end)
             end, desc = "New Note (create & edit)"},
+        },
+    },
+    {
+        -- Keybind discoverability: popup when <leader> is pressed.
+        "folke/which-key.nvim",
+        event = "VeryLazy",
+        opts = {
+            preset = "heli",
+            win = { border = "rounded" },
+            delay = 2000, -- 2 second delay
+        },
+        keys = {
+            {
+                "<leader>?",
+                function()
+                    require("which-key").show({ global = false })
+                end,
+                desc = "Buffer keymaps (which-key)",
+            },
         },
     },
     {
@@ -500,31 +519,31 @@ require("lazy").setup({
                         if vim.wo.diff then return ']c' end
                         vim.schedule(function() gs.next_hunk() end)
                         return '<Ignore>'
-                    end, {expr=true})
+                    end, {expr=true, desc = "Next hunk"})
 
                     map('n', '[c', function()
                         if vim.wo.diff then return '[c' end
                         vim.schedule(function() gs.prev_hunk() end)
                         return '<Ignore>'
-                    end, {expr=true})
+                    end, {expr=true, desc = "Prev hunk"})
 
                     -- Actions
-                    map('n', '<leader>hs', gs.stage_hunk)
-                    map('n', '<leader>hr', gs.reset_hunk)
-                    map('v', '<leader>hs', function() gs.stage_hunk {vim.fn.line('.'), vim.fn.line('v')} end)
-                    map('v', '<leader>hr', function() gs.reset_hunk {vim.fn.line('.'), vim.fn.line('v')} end)
-                    map('n', '<leader>hS', gs.stage_buffer)
-                    map('n', '<leader>hu', gs.undo_stage_hunk)
-                    map('n', '<leader>hR', gs.reset_buffer)
-                    map('n', '<leader>hp', gs.preview_hunk)
-                    map('n', '<leader>hb', function() gs.blame_line{full=true} end)
-                    map('n', '<leader>tb', gs.toggle_current_line_blame)
-                    map('n', '<leader>hd', gs.diffthis)
-                    map('n', '<leader>hD', function() gs.diffthis('~') end)
-                    map('n', '<leader>td', gs.toggle_deleted)
+                    map('n', '<leader>hs', gs.stage_hunk, { desc = "Stage hunk" })
+                    map('n', '<leader>hr', gs.reset_hunk, { desc = "Reset hunk" })
+                    map('v', '<leader>hs', function() gs.stage_hunk {vim.fn.line('.'), vim.fn.line('v')} end, { desc = "Stage hunk (visual)" })
+                    map('v', '<leader>hr', function() gs.reset_hunk {vim.fn.line('.'), vim.fn.line('v')} end, { desc = "Reset hunk (visual)" })
+                    map('n', '<leader>hS', gs.stage_buffer, { desc = "Stage buffer" })
+                    map('n', '<leader>hu', gs.undo_stage_hunk, { desc = "Undo stage hunk" })
+                    map('n', '<leader>hR', gs.reset_buffer, { desc = "Reset buffer" })
+                    map('n', '<leader>hp', gs.preview_hunk, { desc = "Preview hunk" })
+                    map('n', '<leader>hb', function() gs.blame_line{full=true} end, { desc = "Blame line" })
+                    map('n', '<leader>tb', gs.toggle_current_line_blame, { desc = "Toggle blame" })
+                    map('n', '<leader>hd', gs.diffthis, { desc = "Diff hunk" })
+                    map('n', '<leader>hD', function() gs.diffthis('~') end, { desc = "Diff hunk (against ~)" })
+                    map('n', '<leader>td', gs.toggle_deleted, { desc = "Toggle deleted" })
 
                     -- Text object
-                    map({'o', 'x'}, 'ih', ':<C-U>Gitsigns select_hunk<CR>')
+                    map({'o', 'x'}, 'ih', ':<C-U>Gitsigns select_hunk<CR>', { desc = "Select hunk" })
 
                     vim.api.nvim_create_autocmd('BufWritePre', {
                         buffer = bufnr,
@@ -572,9 +591,8 @@ require("lazy").setup({
         "numToStr/Comment.nvim",
         config = function()
             require("Comment").setup()
-            local opts = { remap = true, silent = true }
-            vim.keymap.set("n", "<C-_>", "gcc", opts)
-            vim.keymap.set("v", "<C-_>", "gc", opts)
+            vim.keymap.set("n", "<C-_>", "gcc", { remap = true, silent = true, desc = "Toggle comment line" })
+            vim.keymap.set("v", "<C-_>", "gc", { remap = true, silent = true, desc = "Toggle comment selection" })
         end
     },
     {
@@ -735,9 +753,9 @@ require("lazy").setup({
         -- 'S' becomes search backwards
         url = "https://codeberg.org/andyg/leap.nvim",
         config = function()
-            vim.keymap.set({'n', 'x', 'o'}, 's',  '<Plug>(leap-forward)')
-            vim.keymap.set({'n', 'x', 'o'}, 'S',  '<Plug>(leap-backward)')
-            vim.keymap.set({'n', 'x', 'o'}, 'gs', '<Plug>(leap-from-window)')
+            vim.keymap.set({'n', 'x', 'o'}, 's',  '<Plug>(leap-forward)', { desc = "Leap forward" })
+            vim.keymap.set({'n', 'x', 'o'}, 'S',  '<Plug>(leap-backward)', { desc = "Leap backward" })
+            vim.keymap.set({'n', 'x', 'o'}, 'gs', '<Plug>(leap-from-window)', { desc = "Leap from window" })
         end,
     },
     {
@@ -1058,11 +1076,11 @@ require("lazy").setup({
                         local bufopts = {
                             noremap = true,
                             silent = true,
-                            buffer = bufnr
+                            buffer = bufnr,
                         }
-                        vim.keymap.set('n', '<leader>A', "<Cmd>RustLsp codeAction<CR>", bufopts)
-                        vim.keymap.set('n', '<leader>a', "<Cmd>RustLsp hover actions<CR>", bufopts)
-                        vim.keymap.set('n', 'K', "<Cmd>RustLsp hover actions<CR>", bufopts)
+                        vim.keymap.set('n', '<leader>A', "<Cmd>RustLsp codeAction<CR>", vim.tbl_extend("force", bufopts, { desc = "Rust code action" }))
+                        vim.keymap.set('n', '<leader>a', "<Cmd>RustLsp hover actions<CR>", vim.tbl_extend("force", bufopts, { desc = "Rust hover actions" }))
+                        vim.keymap.set('n', 'K', "<Cmd>RustLsp hover actions<CR>", vim.tbl_extend("force", bufopts, { desc = "Rust hover actions" }))
                     end,
                     settings = {
                         -- rust-analyzer language server configuration
@@ -1143,17 +1161,17 @@ require("lazy").setup({
                     --   ac/ic : a class / inner class
                     --   aa/ia : a parameter / inner parameter
                     local select = require("nvim-treesitter-textobjects.select").select_textobject
-                    local map = function(key, query)
+                    local map = function(key, query, desc)
                         vim.keymap.set({ "x", "o" }, key, function()
                             select(query, "textobjects")
-                        end, { silent = true })
+                        end, { silent = true, desc = desc })
                     end
-                    map("af", "@function.outer")
-                    map("if", "@function.inner")
-                    map("ac", "@class.outer")
-                    map("ic", "@class.inner")
-                    map("aa", "@parameter.outer")
-                    map("ia", "@parameter.inner")
+                    map("af", "@function.outer", "Select outer function")
+                    map("if", "@function.inner", "Select inner function")
+                    map("ac", "@class.outer", "Select outer class")
+                    map("ic", "@class.inner", "Select inner class")
+                    map("aa", "@parameter.outer", "Select outer parameter")
+                    map("ia", "@parameter.inner", "Select inner parameter")
 
                     -- Move between functions:
                     --   ]m / [m : next / prev function start
@@ -1161,10 +1179,10 @@ require("lazy").setup({
                     local move = require("nvim-treesitter-textobjects.move")
                     vim.keymap.set({ "n", "x", "o" }, "]m", function()
                         move.goto_next_start("@function.outer", "textobjects")
-                    end, { silent = true })
+                    end, { silent = true, desc = "Next function start" })
                     vim.keymap.set({ "n", "x", "o" }, "[m", function()
                         move.goto_previous_start("@function.outer", "textobjects")
-                    end, { silent = true })
+                    end, { silent = true, desc = "Prev function start" })
                 end,
             },
             -- NOTE: nvim-treesitter-textsubjects (`;`, `i;`, `.`) was removed
@@ -1525,8 +1543,8 @@ require("lazy").setup({
                 dap.toggle_breakpoint(condition)
             end, { nargs = 1 })
 
-            vim.keymap.set("n", "<leader>gb", dap.run_to_cursor)
-            vim.keymap.set("n", "<leader>b", dap.toggle_breakpoint)
+            vim.keymap.set("n", "<leader>gb", dap.run_to_cursor, { desc = "Run to cursor" })
+            vim.keymap.set("n", "<leader>b", dap.toggle_breakpoint, { desc = "Toggle breakpoint" })
             vim.keymap.set("n", "<leader>B", function()
                 local condition = vim.fn.input("Enter condition: ")
                 if condition == nil then
@@ -1543,18 +1561,18 @@ require("lazy").setup({
             -- floating eval regardless of the active backend.
             vim.keymap.set("n", "<leader>;", function()
                 ui.eval(nil, { enter = true })
-            end)
+            end, { desc = "Evaluate variable" })
 
-            vim.keymap.set("n", "<F1>", dap.continue)
-            vim.keymap.set("n", "<F2>", dap.step_into)
-            vim.keymap.set("n", "<F3>", dap.step_over)
-            vim.keymap.set("n", "<F4>", dap.step_out)
-            vim.keymap.set("n", "<F5>", dap.step_back) -- only for rr?
+            vim.keymap.set("n", "<F1>", dap.continue, { desc = "DAP continue" })
+            vim.keymap.set("n", "<F2>", dap.step_into, { desc = "DAP step into" })
+            vim.keymap.set("n", "<F3>", dap.step_over, { desc = "DAP step over" })
+            vim.keymap.set("n", "<F4>", dap.step_out, { desc = "DAP step out" })
+            vim.keymap.set("n", "<F5>", dap.step_back, { desc = "DAP step back" })
 
-            vim.keymap.set('n', '<F6>', dap.up)
-            vim.keymap.set('n', '<F7>', dap.down)
+            vim.keymap.set('n', '<F6>', dap.up, { desc = "DAP up stack" })
+            vim.keymap.set('n', '<F7>', dap.down, { desc = "DAP down stack" })
 
-            vim.keymap.set("n", "<F10>", dap.restart)
+            vim.keymap.set("n", "<F10>", dap.restart, { desc = "DAP restart" })
 
             -- DAP event listeners: open/close the active UI backend.
             dap.listeners.before.attach.dap_ui = function() dap_open() end
@@ -1807,13 +1825,13 @@ require("lazy").setup({
                     api_key_name = 'GEMINI_API_KEY_159',
                     system_prompt = system_prompt,
                     replace = false,
-                    debug = false,
+                    debug = true,
                     debug_path = debug_path,
                 }, dingllm.make_gemini_spec_curl_args, dingllm.handle_gemini_spec_data)
             end
 
-            vim.keymap.set({ 'n', 'v' }, '<leader>k', gemeni_replace, { desc = 'llm gemeni' })
-            vim.keymap.set({ 'n', 'v' }, '<leader>K', gemeni_help, { desc = 'llm gemeni_help' })
+            vim.keymap.set({ 'n', 'v' }, '<leader>k', gemeni_replace, { desc = 'LLM replace selection' })
+            vim.keymap.set({ 'n', 'v' }, '<leader>K', gemeni_help, { desc = 'LLM conversation' })
         end,
     },
 })
@@ -1823,33 +1841,33 @@ require("lazy").setup({
 -- 4. GENERAL KEYMAPPINGS
 -- =============================================================================
 
-vim.api.nvim_set_keymap('v', '<leader>vc', [[:lua ShowVisualCharCount()<CR>]], { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "]q", ":lua QuickfixJump(1)<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "[q", ":lua QuickfixJump(-1)<CR>", { noremap = true, silent = true })
+vim.keymap.set('v', '<leader>vc', function() ShowVisualCharCount() end, { desc = "Show visual char count" })
+vim.keymap.set("n", "]q", function() QuickfixJump(1) end, { desc = "Quickfix next" })
+vim.keymap.set("n", "[q", function() QuickfixJump(-1) end, { desc = "Quickfix prev" })
 
-vim.keymap.set('n', 'yc', 'yy<cmd>normal gcc<CR>p')
-vim.keymap.set('v', 'Yc', 'y<cmd>normal gvgc<CR>o<Esc>p')
+vim.keymap.set('n', 'yc', 'yy<cmd>normal gcc<CR>p', { desc = "Yank line and comment" })
+vim.keymap.set('v', 'Yc', 'y<cmd>normal gvgc<CR>o<Esc>p', { desc = "Yank selection and comment" })
 
 -- Shift+Tab to outdent in insert mode
-vim.keymap.set("i", "<S-Tab>", "<C-D>", { noremap = true })
+vim.keymap.set("i", "<S-Tab>", "<C-D>", { noremap = true, desc = "Outdent" })
 
 -- Toggle Paste mode
 vim.keymap.set("n", "<leader>p", function()
     local old_paste = vim.opt.paste:get()
     vim.opt.paste = not old_paste
     print('Paste mode ' .. (not old_paste and 'ENABLED' or 'DISABLED'))
-end, { silent = true })
+end, { silent = true, desc = "Toggle paste mode" })
 
 -- Enter: change word under cursor
-vim.keymap.set("n", "<CR>", "ciw", { noremap = true })
+vim.keymap.set("n", "<CR>", "ciw", { noremap = true, desc = "Change inner word" })
 
 -- Ctrl+s: Save
-vim.keymap.set({ "n", "i", "v" }, "<C-s>", "<cmd>write<CR>", { noremap = true })
+vim.keymap.set({ "n", "i", "v" }, "<C-s>", "<cmd>write<CR>", { noremap = true, desc = "Save file" })
 
 -- Build with last args
 vim.keymap.set("n", "<C-M-b>", function()
     vim.cmd("Make " .. (vim.g.last_make_args or ""))
-end, { noremap = true })
+end, { noremap = true, desc = "Build with last args" })
 
 -- Quickfix toggling
 local function toggle_quickfix()
@@ -1864,6 +1882,7 @@ end
 vim.keymap.set("n", "<leader>q", toggle_quickfix, {
     noremap = true,
     silent = true,
+    desc = "Toggle quickfix",
 })
 
 -- Quickfix clear list
@@ -1874,47 +1893,48 @@ end
 vim.keymap.set("n", "<leader>Q", clear_quickfix, {
     noremap = true,
     silent = true,
+    desc = "Clear quickfix",
 })
 
 -- Quickfix navigation
-vim.keymap.set("n", "[Q", vim.cmd.cfirst, { noremap = true })
-vim.keymap.set("n", "]Q", vim.cmd.clast,  { noremap = true })
+vim.keymap.set("n", "[Q", vim.cmd.cfirst, { noremap = true, desc = "Quickfix first" })
+vim.keymap.set("n", "]Q", vim.cmd.clast,  { noremap = true, desc = "Quickfix last" })
 
 -- Location list navigation
-vim.keymap.set("n", "[w", vim.cmd.lprev, { noremap = true })
-vim.keymap.set("n", "]w", vim.cmd.lnext, { noremap = true })
+vim.keymap.set("n", "[w", vim.cmd.lprev, { noremap = true, desc = "Location list prev" })
+vim.keymap.set("n", "]w", vim.cmd.lnext, { noremap = true, desc = "Location list next" })
 
 -- Disable Ex mode
-vim.keymap.set("n", "Q", "<NOP>", { noremap = true })
+vim.keymap.set("n", "Q", "<NOP>", { noremap = true, desc = "Disable Ex mode" })
 
 -- Move up/down lines visually when wrapped
-vim.keymap.set("n", "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
-vim.keymap.set("n", "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
+vim.keymap.set("n", "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true, desc = "Line up (wrapped)" })
+vim.keymap.set("n", "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true, desc = "Line down (wrapped)" })
 
 -- Clear search highlighting
-vim.keymap.set("n", "<leader>h", "<cmd>noh<CR>", { silent = true })
+vim.keymap.set("n", "<leader>h", "<cmd>noh<CR>", { silent = true, desc = "Clear search highlight" })
 
 -- Count occurrences
-vim.keymap.set("n", "<leader>C", ":%s///gn<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>C", ":%s///gn<CR>", { noremap = true, desc = "Count occurrences" })
 
 -- Jump to braces (function navigation)
-vim.keymap.set("n", "]]", "]]zt", { noremap = true })
-vim.keymap.set("n", "[[", "[[zt", { noremap = true })
+vim.keymap.set("n", "]]", "]]zt", { noremap = true, desc = "Next function start" })
+vim.keymap.set("n", "[[", "[[zt", { noremap = true, desc = "Prev function start" })
 
 -- Buffer management
-vim.keymap.set("n", "<leader>d", "<cmd>bdelete<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>d", "<cmd>bdelete<CR>", { noremap = true, desc = "Delete buffer" })
 
 -- Tab management
-vim.keymap.set("n", "R", "<cmd>tabprevious<CR>", { noremap = true })
-vim.keymap.set("n", "T", "<cmd>tabnext<CR>", { noremap = true })
-vim.keymap.set("n", "<leader>tn", "<cmd>tabnew<CR>", { noremap = true })
-vim.keymap.set("n", "<leader>tc", "<cmd>tabclose<CR>", { noremap = true })
+vim.keymap.set("n", "R", "<cmd>tabprevious<CR>", { noremap = true, desc = "Tab previous" })
+vim.keymap.set("n", "T", "<cmd>tabnext<CR>", { noremap = true, desc = "Tab next" })
+vim.keymap.set("n", "<leader>tn", "<cmd>tabnew<CR>", { noremap = true, desc = "Tab new" })
+vim.keymap.set("n", "<leader>tc", "<cmd>tabclose<CR>", { noremap = true, desc = "Tab close" })
 vim.keymap.set("n", "<leader>tl", function()
     vim.cmd("tabnext " .. vim.g.lasttab)
-end, { noremap = true })
+end, { noremap = true, desc = "Tab last" })
 
 -- Zoom Toggle
-vim.keymap.set("n", "<leader>z", "<cmd>ZoomToggle<CR>", { silent = true, noremap = true })
+vim.keymap.set("n", "<leader>z", "<cmd>ZoomToggle<CR>", { silent = true, noremap = true, desc = "Zoom toggle" })
 
 
 -- =============================================================================
@@ -2209,7 +2229,7 @@ function _G.toggle_diagnostics()
 end
 
 -- Toggle diagnostics display, it can be very cluttered.
-vim.api.nvim_set_keymap('n', '<leader>tt', ':call v:lua.toggle_diagnostics()<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>tt', toggle_diagnostics, { desc = "Toggle diagnostics" })
 
 -- See :help vim.diagnostic.config()
 vim.diagnostic.config({
