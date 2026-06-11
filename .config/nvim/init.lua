@@ -2159,6 +2159,12 @@ end, { nargs = "*" })
 -- Keybind to stop current background build
 vim.keymap.set('n', '<leader>mc', function() require('async_make').stop() end, { desc = "Cancel Make" })
 
+-- UndoTree
+vim.keymap.set("n", "<leader>u", function()
+    vim.cmd("packadd nvim.undotree")
+    require("undotree").open()
+end, { desc = "Undotree" })
+
 -- Scratch buffer
 vim.api.nvim_create_user_command('Scratch', function()
     vim.cmd("new")
