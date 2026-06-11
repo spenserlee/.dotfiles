@@ -1412,10 +1412,8 @@ require("lazy").setup({
                     -- Remap the Scopes winbar section key from "S" to "o"
                     -- (for "objects/locals") to avoid conflict with leap.nvim's
                     -- default `S` (leap-backward).
-                    winbar = {
-                        base_sections = {
-                            scopes = { label = "Scopes", keymap = "o" },
-                        },
+                    keymaps = {
+                        switch_to_scopes = "o",
                     },
                     windows = {
                         -- Section views (Scopes/Watches/etc) on the left,
@@ -1514,12 +1512,51 @@ require("lazy").setup({
                 end
             end
 
+            -- ----------------------------------------------------------------
+            -- Shared terminal buffer for process output
+            --
+            -- Both dap-view and dap-ui want to own dap.defaults.fallback
+            -- .terminal_win_cmd: dap-ui sets it to return its console_buf,
+            -- then dap-view overwrites it with a function that creates a
+            -- fresh plain buffer.  The last writer (dap-view, loaded second)
+            -- wins, so the runInTerminal process always ends up in a dap-view
+            -- buffer that dap-ui's console window never sees.
+            --
+            -- Fix: we take ownership of terminal_win_cmd ourselves (set at
+            -- the bottom of this config block, after both plugins have run).
+            -- It is backend-aware:
+            --   • dap-ui  active → return dapui_console_buf so that
+            --     session.term_buf IS dap-ui's console buffer and output
+            --     appears there directly.
+            --   • dap-view active → create a fresh buffer (dap-view's
+            --     original behaviour).
+            --
+            -- dapui_console_buf is populated the first time ui.open() is
+            -- called (at which point dap-ui has created its console window).
+            -- ----------------------------------------------------------------
+            local dapui_console_buf = nil
+
+            -- Scan all open buffers for dap-ui's console buffer and cache it.
+            local function capture_dapui_console_buf()
+                for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+                    if vim.api.nvim_buf_is_valid(buf)
+                        and vim.bo[buf].filetype == "dapui_console" then
+                        dapui_console_buf = buf
+                        return
+                    end
+                end
+            end
+
             -- Open/close helpers that respect the active backend.
             local function dap_open()
                 if vim.g.dap_ui_backend == "dapview" then
                     require("dap-view").open()
                 else
                     ui.open()
+                    -- Capture dap-ui's console buffer on first open so that
+                    -- terminal_win_cmd (below) can route the process output
+                    -- straight into it.
+                    capture_dapui_console_buf()
                 end
             end
 
@@ -1608,6 +1645,28 @@ require("lazy").setup({
                 -- Re-open with the new backend if a session is running.
                 if dap.session() then
                     dap_open()
+
+                    -- When switching to dap-ui mid-session the session's
+                    -- terminal buffer (session.term_buf) was created under
+                    -- dap-view's terminal_win_cmd and is a different buffer
+                    -- from dapui_console_buf.  Point dap-ui's console windows
+                    -- at it so existing and future output stays visible.
+                    if next_backend == "dapui" then
+                        local term_buf = dap.session().term_buf
+                        if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+                            for _, win in ipairs(vim.api.nvim_list_wins()) do
+                                local buf = vim.api.nvim_win_get_buf(win)
+                                if vim.api.nvim_buf_is_valid(buf)
+                                    and vim.bo[buf].filetype == "dapui_console" then
+                                    pcall(function()
+                                        vim.wo[win].winfixbuf = false
+                                        vim.api.nvim_win_set_buf(win, term_buf)
+                                        vim.wo[win].winfixbuf = true
+                                    end)
+                                end
+                            end
+                        end
+                    end
                 end
             end, {})
 
