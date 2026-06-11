@@ -6,7 +6,7 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- General settings (converted from init.vim)
+--- General settings
 vim.opt.hidden = true                  -- Allow background buffers
 vim.opt.autoread = true                -- Update files if changed externally
 vim.opt.history = 10000                -- Command history
@@ -388,6 +388,18 @@ require("lazy").setup({
                     vim.cmd.edit(vim.fn.fnameescape(path))
                 end)
             end, desc = "New Note (create & edit)"},
+            { "<leader>os", function()
+                    require('fzf-lua').files({
+                        prompt = 'signature> ',
+                        cwd = '~/Downloads/sig',
+                        -- If you use 'fd' (recommended)
+                        cmd = "fd --type f --extension txt",
+                        -- If you use 'find'
+                        -- cmd = "find . -type f -name '*.txt'",
+                    })
+                end,
+                desc = "FZF Signature Files"
+            },
         },
     },
     {
@@ -723,6 +735,14 @@ require("lazy").setup({
         config = function()
             require("nvim-surround").setup()
         end
+    },
+    {
+        "gregorias/nvim-surround-wk",
+        dependencies = {
+            "kylechui/nvim-surround",
+            "folke/which-key.nvim",
+        },
+        config = true,
     },
     {
         -- Add closing delimiter automatically.
