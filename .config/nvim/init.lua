@@ -1030,7 +1030,7 @@ require("lazy").setup({
         -- Configures rust-analyzer builtin LSP client + integrates with other Rust tools.
         -- https://github.com/mrcjkb/rustaceanvim/discussions/122
         'mrcjkb/rustaceanvim',
-        version = '^6', -- Recommended
+        version = '^9', -- Recommended
         ft = { 'rust' },
         lazy = false,
         init = function()
