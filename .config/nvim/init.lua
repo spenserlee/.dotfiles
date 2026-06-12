@@ -1803,6 +1803,28 @@ require("lazy").setup({
                     end,
                 }
             }
+
+            -- Override terminal_win_cmd so both UI backends share the same
+            -- output buffer.  This runs after both dap-ui and dap-view have
+            -- already set their own versions, so ours wins.
+            --
+            -- • dap-ui active:  return dapui_console_buf (captured when
+            --   ui.open() is called).  nvim-dap will run termopen() on it,
+            --   making it the live terminal for the process.  Since dap-ui's
+            --   console window already shows that buffer, output is visible
+            --   there immediately — no window redirect needed.
+            --
+            -- • dap-view active:  create a fresh plain buffer (identical to
+            --   dap-view's original behaviour).  dap-view's terminal window
+            --   then shows session.term_buf as usual.
+            dap.defaults.fallback.terminal_win_cmd = function()
+                if vim.g.dap_ui_backend == "dapui"
+                    and dapui_console_buf
+                    and vim.api.nvim_buf_is_valid(dapui_console_buf) then
+                    return dapui_console_buf
+                end
+                return vim.api.nvim_create_buf(false, false)
+            end
         end,
     },
     {
