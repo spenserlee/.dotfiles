@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+# theme-switch -- switch colorscheme across tmux, neovim, and Windows Terminal (WSL).
+#
+# Usage:
+#   theme-switch <name>
+#   theme-switch              (prints current theme and available themes)
+#
+# Available themes:
+#   everforest-dark-harder    (default; fork's darker bg variant)
+#   everforest-dark-soft
+#   everforest-light-soft
+#   everforest-light-medium
+#   gruvbox-dark
+#   gruvbox-light
+#   nordic
+
+set -euo pipefail
+
+THEMES_DIR="$HOME/.tmux/themes"
+ACTIVE_LINK="$THEMES_DIR/active-theme.conf"
+CURRENT_FILE="$HOME/.config/current-theme"
+EVERFOREST_PLUGIN="$HOME/.tmux/plugins/tmux-everforest"
+GRUVBOX_PLUGIN="$HOME/.tmux/plugins/tmux-gruvbox"
+NORDIC_PLUGIN="$HOME/.tmux/plugins/tmux-nordic"
+
+# ── Theme map ────────────────────────────────────────────────────────────────
+declare -A TMUX_CONF=(
+    [everforest-dark-harder]="$EVERFOREST_PLUGIN/tmux-everforest-dark-harder.conf"
+    [everforest-dark-soft]="$EVERFOREST_PLUGIN/tmux-everforest-dark-soft.conf"
+    [everforest-light-soft]="$EVERFOREST_PLUGIN/tmux-everforest-light-soft.conf"
+    [everforest-light-medium]="$EVERFOREST_PLUGIN/tmux-everforest-light-medium.conf"
+    [gruvbox-dark]="$GRUVBOX_PLUGIN/tmux-gruvbox-dark.conf"
+    [gruvbox-light]="$GRUVBOX_PLUGIN/tmux-gruvbox-light.conf"
+    [nordic]="$NORDIC_PLUGIN/tmux-nordic.conf"
+)
+
+# ── No argument: show status ─────────────────────────────────────────────────
+if [[ $# -eq 0 ]]; then
+    current="(none)"
+    [[ -f "$CURRENT_FILE" ]] && current=$(cat "$CURRENT_FILE")
+    echo "Current theme: $current"
+    echo ""
+    echo "Available themes:"
+    for t in $(echo "${!TMUX_CONF[@]}" | tr ' ' '\n' | sort); do
+        if [[ "$t" == "$current" ]]; then
+            echo "  * $t"
+        else
+            echo "    $t"
+        fi
+    done
+    exit 0
+fi
+
+THEME="$1"
+
+# ── Validate ─────────────────────────────────────────────────────────────────
+if [[ -z "${TMUX_CONF[$THEME]+_}" ]]; then
+    echo "Unknown theme: '$THEME'" >&2
+    echo "Available: ${!TMUX_CONF[*]}" >&2
+    exit 1
+fi
+
+TARGET="${TMUX_CONF[$THEME]}"
+if [[ ! -f "$TARGET" ]]; then
+    echo "Theme file not found: $TARGET" >&2
+    exit 1
+fi
+
+echo "Switching to: $THEME"
+
+# ── 1. Persist current theme name ────────────────────────────────────────────
+echo "$THEME" > "$CURRENT_FILE"
+
+# ── 2. Update tmux theme symlink and reload ──────────────────────────────────
+# Source the active theme conf DIRECTLY (not ~/.tmux.conf). Re-sourcing the full
+# config would re-trigger tpm and the theme plugins' default-sourcing hooks,
+# which clobber our selection. Sourcing the conf alone is also much faster.
+ln -sfn "$TARGET" "$ACTIVE_LINK"
+if command -v tmux &>/dev/null && tmux info &>/dev/null 2>&1; then
+    tmux source-file "$ACTIVE_LINK"
+    # Force a full status bar redraw on all clients so the fill area (the space
+    # past the last tab) updates immediately rather than on the next activity.
+    tmux refresh-client -S
+    echo "  tmux: reloaded"
+else
+    echo "  tmux: not running (will apply on next start)"
+fi
+
+# ── 3. Tell all running neovim instances to switch ───────────────────────────
+# Uses nvim --server (built-in, no extra tools needed).
+# On Linux, nvim sockets live at /run/user/<UID>/nvim.<PID>.<N>
+# We also check $NVIM in case this script runs inside a nvim terminal buffer.
+NVIM_SERVERS=()
+
+shopt -s nullglob
+for sock in /run/user/"$(id -u)"/nvim.*.* /tmp/nvim.*; do
+    [[ -S "$sock" ]] && NVIM_SERVERS+=("$sock")
+done
+shopt -u nullglob
+[[ -n "${NVIM:-}" && -S "${NVIM}" ]] && NVIM_SERVERS+=("$NVIM")
+
+# Remove duplicates
+if [[ ${#NVIM_SERVERS[@]} -gt 0 ]]; then
+    mapfile -t NVIM_SERVERS < <(printf '%s\n' "${NVIM_SERVERS[@]}" | sort -u)
+fi
+
+if [[ ${#NVIM_SERVERS[@]} -gt 0 ]]; then
+    for sock in "${NVIM_SERVERS[@]}"; do
+        if nvim --server "$sock" --remote-send "<cmd>lua require('theme-switch').apply('$THEME', true)<cr>" 2>/dev/null; then
+            echo "  nvim ($sock): switched"
+        else
+            echo "  nvim ($sock): send failed (stale socket?)"
+        fi
+    done
+else
+    echo "  nvim: no running instances found (will apply on next start via persistence)"
+fi
+
+# ── 4. Windows Terminal (WSL) ────────────────────────────────────────────────
+# Exact path — update if you move your WT install or rename your Windows user.
+WT_SETTINGS="/mnt/c/Users/Spenser/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
+
+if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+    if [[ ! -f "$WT_SETTINGS" ]]; then
+        echo "  Windows Terminal: settings.json not found at $WT_SETTINGS -- skipped"
+    elif ! command -v jq &>/dev/null; then
+        echo "  Windows Terminal: 'jq' not installed -- skipped (apt install jq)"
+    else
+        # colorScheme: must exactly match a "name" in the "schemes" array.
+        declare -A WT_COLOR_SCHEME=(
+            [everforest-dark-harder]="Everforest Dark Harder"
+            [everforest-dark-soft]="Everforest Dark Medium"
+            [everforest-light-soft]="Everforest Soft Light"
+            [everforest-light-medium]="Everforest Soft Light"
+            [gruvbox-dark]="Gruvbox Dark"
+            [gruvbox-light]="Gruvbox Light"
+            [nordic]="Nordic"
+        )
+
+        # UI chrome theme: must exactly match a "name" in the "themes" array.
+        # All required chrome themes now exist in settings.json.
+        declare -A WT_UI_THEME=(
+            [everforest-dark-harder]="Everforest Dark Harder"
+            [everforest-dark-soft]="Everforest Dark Medium"
+            [everforest-light-soft]="Everforest Soft Light"
+            [everforest-light-medium]="Everforest Soft Light"
+            [gruvbox-dark]="Gruvbox Dark"
+            [gruvbox-light]="Gruvbox Light"
+            [nordic]="Nordic"
+        )
+
+        cs="${WT_COLOR_SCHEME[$THEME]:-}"
+        ui="${WT_UI_THEME[$THEME]:-}"
+
+        # GUIDs for both Ubuntu profiles (primary CanonicalGroupLimited + hidden WSL one)
+        UBUNTU_GUID_PRIMARY="{51855cb2-8cce-5362-8f54-464b92b32386}"
+        UBUNTU_GUID_WSL="{2c4de342-38b7-51cf-b940-2309a097f518}"
+
+        tmp=$(mktemp --suffix=.json)
+        jq --arg cs "$cs" \
+           --arg ui "$ui" \
+           --arg g1 "$UBUNTU_GUID_PRIMARY" \
+           --arg g2 "$UBUNTU_GUID_WSL" \
+           '
+           .profiles.defaults.colorScheme = $cs |
+           .profiles.list |= map(
+               if .guid == $g1 or .guid == $g2 then .colorScheme = $cs else . end
+           ) |
+           if (.themes | map(.name) | contains([$ui]))
+           then .theme = $ui
+           else .
+           end
+           ' \
+           "$WT_SETTINGS" > "$tmp" && mv "$tmp" "$WT_SETTINGS"
+
+        echo "  Windows Terminal: colorScheme -> '$cs', UI theme -> '$ui'"
+    fi
+fi
+
+# ── 5. GNOME Terminal (Ubuntu, non-WSL) ──────────────────────────────────────
+# GNOME Terminal doesn't support programmatic profile switching easily.
+# The cleanest approach is dconf; fill in your profile UUID to enable.
+#
+# if [[ -z "${WSL_DISTRO_NAME:-}" ]] && command -v dconf &>/dev/null; then
+#     PROFILE_UUID="your-gnome-terminal-profile-uuid-here"
+#     dconf write /org/gnome/terminal/legacy/profiles:/:${PROFILE_UUID}/background-color "'#1E2327'"
+# fi
+
+echo "Done."

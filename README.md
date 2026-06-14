@@ -13,6 +13,7 @@ Currently managed in a [bare git repo](https://www.atlassian.com/git/tutorials/d
 TLDR:
 
     git init --bare $HOME/.dotfiles
+    git --git-dir=$HOME/.dotfiles config --set core.worktree
     alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
     dotfig config --local status.showUntrackedFiles no
 
