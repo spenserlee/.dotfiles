@@ -4,8 +4,6 @@ Configuration files for my development environment using neovim and tmux.
 
 ![nvim DAP debugging](./.config/dotshowcase/new_preview_01.png?raw=true "Preview nvim DAP")
 
-https://github.com/user-attachments/assets/ab29eb5d-ec5f-4c2c-9c8f-bf1df1ec89dc
-
 ---
 
 Currently managed in a [bare git repo](https://www.atlassian.com/git/tutorials/dotfiles).
