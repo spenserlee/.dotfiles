@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# theme-switch -- switch colorscheme across tmux, neovim, and Windows Terminal (WSL).
+# theme-switch -- switch colorscheme across tmux, neovim, Windows Terminal (WSL),
+#                 and Ghostty terminal.
 #
 # Usage:
 #   theme-switch <name>
@@ -176,7 +177,27 @@ if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
     fi
 fi
 
-# ── 5. GNOME Terminal (Ubuntu, non-WSL) ──────────────────────────────────────
+# ── 5. Ghostty terminal ───────────────────────────────────────────────────────
+GHOSTTY_AUTO="$HOME/.config/ghostty/auto/theme.ghostty"
+if command -v ghostty &>/dev/null && [[ -d "$HOME/.config/ghostty/auto" ]]; then
+    declare -A GHOSTTY_THEME=(
+        [everforest-dark-harder]="Everforest Dark Hard"
+        [everforest-dark-soft]="Everforest Dark Hard"
+        [everforest-light-soft]="Everforest Light Med"
+        [everforest-light-medium]="Everforest Light Med"
+        [gruvbox-dark]="Gruvbox Dark"
+        [gruvbox-light]="Gruvbox Light"
+        [nordic]="Nord"
+    )
+
+    gtheme="${GHOSTTY_THEME[$THEME]:-}"
+    if [[ -n "$gtheme" ]]; then
+        echo "theme = $gtheme" > "$GHOSTTY_AUTO"
+        echo "  ghostty: theme -> '$gtheme'"
+    fi
+fi
+
+# ── 6. GNOME Terminal (Ubuntu, non-WSL) ──────────────────────────────────────
 # GNOME Terminal doesn't support programmatic profile switching easily.
 # The cleanest approach is dconf; fill in your profile UUID to enable.
 #
