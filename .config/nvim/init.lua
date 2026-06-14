@@ -88,51 +88,109 @@ vim.opt.rtp:prepend(lazypath)
 -- 3. PLUGINS
 -- =============================================================================
 require("lazy").setup({
+    -- =========================================================================
+    -- COLORSCHEME MANAGEMENT
+    -- theme-switch.nvim declares the themes and drives switching/persistence.
+    -- Open the picker with :ThemeSwitch or <leader>cs
     {
-        -- Load colorscheme first.
-        "ellisonleao/gruvbox.nvim",
-        enabled = false,
-        lazy = false,
-        priority = 1000,
-        init = function()
-            vim.cmd("colorscheme gruvbox")
-        end
-    },
-    {
-        "neanias/everforest-nvim",
+        "spenserlee/everforest-nvim",
+        name = "everforest-nvim",
         version = false,
         lazy = false,
         priority = 1000,
-        config = function()
-            local everforest = require("everforest")
-            everforest.setup({
-                float_style = "dim",
-                background = "hard",
-                -- background = "soft",
-                italics = true,
-                -- transparent_background_level = 0,
-                -- disable_italic_comments = false
-                on_highlights = function(hl, palette)
-                    local float_bg = palette.bg0
-                    local border_fg = palette.grey2
-                    hl.BlinkCmpMenu = { bg = float_bg }
-                    hl.BlinkCmpMenuBorder = { bg = float_bg, fg = border_fg }
-                    hl.BlinkCmpDoc = { bg = float_bg }
-                    hl.BlinkCmpDocBorder = { bg = float_bg, fg = border_fg }
+    },
+    {
+        "ellisonleao/gruvbox.nvim",
+        lazy = false,
+        priority = 1000,
+    },
+    {
+        "AlexvZyl/nordic.nvim",
+        lazy = false,
+        priority = 1000,
+    },
+    {
+        "spenserlee/theme-switch.nvim",
+        name = "theme-switch.nvim",
+        lazy = false,
+        priority = 999, -- after colorscheme plugins are on the rtp
+        dependencies = {
+            "ibhagwan/fzf-lua",
+            "ellisonleao/gruvbox.nvim",
+            "AlexvZyl/nordic.nvim",
+        },
+        -- The plugin registers no keymap; map the picker here so <leader>cs
+        -- works immediately (before the plugin's setup runs).
+        keys = {
+            { "<leader>cs", "<cmd>ThemeSwitch<cr>", desc = "Theme: switch" },
+        },
+        opts = function()
+            -- Per-colorscheme knowledge lives HERE, in config callbacks --- the
+            -- theme-switch plugin itself is colorscheme-agnostic. Each entry's
+            -- `config` runs before the colorscheme is applied.
 
-                    hl.TreesitterContext = { bg = palette.bg2 }
-
-                    hl.FzfLuaBorder = { bg = "#121517", fg = border_fg }
-                    -- hl.FzfLuaTitle = { bg = "#121517", fg = border_fg }
-                end,
-                colours_override = function (palette)
-                    -- hard-er
-                    -- source: <https://gist.github.com/suppayami/7d427d116b97564d1c565a7aed092d08>
-                    -- <https://gist.github.com/suppayami/7d427d116b97564d1c565a7aed092d08?permalink_comment_id=4516047#gistcomment-4516047>
-                    palette.bg0 = "#1E2327" -- replaces bg0 = "#272e33",
+            -- Shared everforest setup; `variant` is the background hardness.
+            local function everforest(variant, bg)
+                return function()
+                    vim.o.background = bg
+                    require("everforest").setup({
+                        float_style = "dim",
+                        background  = variant,
+                        italics     = true,
+                        on_highlights = function(hl, palette)
+                            local float_bg  = palette.bg0
+                            local border_fg = palette.grey2
+                            hl.BlinkCmpMenu       = { bg = float_bg }
+                            hl.BlinkCmpMenuBorder = { bg = float_bg, fg = border_fg }
+                            hl.BlinkCmpDoc        = { bg = float_bg }
+                            hl.BlinkCmpDocBorder  = { bg = float_bg, fg = border_fg }
+                            hl.TreesitterContext  = { bg = palette.bg2 }
+                            local fzf_bg = (bg == "dark") and "#121517" or float_bg
+                            hl.FzfLuaBorder = { bg = fzf_bg, fg = border_fg }
+                        end,
+                    })
                 end
-            })
-            everforest.load()
+            end
+
+            -- Gruvbox setup; gruvbox leaves Normal transparent, so pin it (and
+            -- a couple of related groups) to the resolved background colour.
+            local function gruvbox(bg, normal_bg, normal_bg_soft)
+                return function()
+                    vim.o.background = bg
+                    require("gruvbox").setup({
+                        contrast = "soft",
+                        italic = { strings = true, emphasis = true, comments = true,
+                                   operators = false, folds = true },
+                        overrides = {
+                            Normal     = { bg = normal_bg },
+                            NormalNC   = { bg = normal_bg_soft or normal_bg },
+                            SignColumn = { bg = normal_bg },
+                        },
+                    })
+                end
+            end
+
+            -- Nordic: a dark Nord-ish theme. Configured via setup(); applying the
+            -- "nordic" colorscheme picks up that config.
+            local function nordic()
+                return function()
+                    vim.o.background = "dark"
+                    require("nordic").setup({})
+                end
+            end
+
+            return {
+                default = "everforest-dark-harder",
+                themes = {
+                    ["everforest-dark-harder"]  = { colorscheme = "everforest", config = everforest("harder", "dark") },
+                    ["everforest-dark-soft"]    = { colorscheme = "everforest", config = everforest("soft",   "dark") },
+                    ["everforest-light-soft"]   = { colorscheme = "everforest", config = everforest("soft",   "light") },
+                    ["everforest-light-medium"] = { colorscheme = "everforest", config = everforest("medium", "light") },
+                    ["gruvbox-dark"]            = { colorscheme = "gruvbox",     config = gruvbox("dark",  "#282828", "#32302f") },
+                    ["gruvbox-light"]           = { colorscheme = "gruvbox",     config = gruvbox("light", "#fbf1c7", "#f2e5bc") },
+                    ["nordic"]                  = { colorscheme = "nordic",      config = nordic() },
+                },
+            }
         end,
     },
     {
@@ -228,33 +286,49 @@ require("lazy").setup({
         dependencies = 'nvim-tree/nvim-web-devicons',
         config = function()
             local theme = {
-                fill = 'TabLineFill',
-                -- Also you can do this: fill = { fg='#f2e9de', bg='#907aa9', style='italic' }
-                head = 'TabLine',
+                fill        = 'TabLineFill',
+                head        = 'TabLine',
                 current_tab = 'TabLineSel',
-                tab = 'TabLine',
-                win = 'TabLine',
-                tail = 'TabLine',
+                tab         = 'TabLine',
+                win         = 'TabLine',
+                tail        = 'TabLine',
             }
+
+            -- Read colors from vim.g.theme_palette (set by theme-switch.nvim on
+            -- each apply). Falls back to everforest-dark-harder values if the
+            -- palette isn't populated yet.
+            local function palette()
+                return vim.g.theme_palette or {
+                    accent          = '#a7c080',
+                    accent_bg       = '#2e3639',
+                    bar_bg          = '#1e2327',
+                    bar_dim         = '#15181a',
+                    tab_active_fg   = '#15181a',
+                    tab_active_bg   = '#a7c080',
+                    tab_inactive_fg = '#859289',
+                    tab_inactive_bg = '#2e3639',
+                }
+            end
+
             require('tabby').setup({
                 line = function(line)
+                    local p = palette()
                     return {
                         {
-                            -- TODO: need better way to refer to current colorscheme values instead of manual hardcode
-                            { '  ', hl = { fg = '#7FBBB3', bg = '#414B50' } },
+                            { '  ', hl = { fg = p.accent, bg = p.accent_bg } },
                             line.sep('', theme.head, theme.fill),
                         },
                         line.tabs().foreach(function(tab)
                             local hl = tab.is_current() and theme.current_tab or theme.tab
-                            local fg = (hl == theme.tab and '#9da9a0') or (hl == theme.current_tab and '#1e2327')
-                            local bg = (hl == theme.tab and '#414b50') or (hl == theme.current_tab and '#a7c080')
+                            local fg = tab.is_current() and p.tab_active_fg or p.tab_inactive_fg
+                            local bg = tab.is_current() and p.tab_active_bg or p.tab_inactive_bg
 
-                            -- remove count of wins in tab with [n+] included in tab.name()
+                            -- Remove count of wins in tab with [n+] included in tab.name()
                             local name = tab.name()
                             local index = string.find(name, "%[%d")
                             local tab_name = index and string.sub(name, 1, index - 1) or name
 
-                            -- indicate if any of buffers in tab have unsaved changes
+                            -- Indicate if any buffer in the tab has unsaved changes
                             local win_is_modified = function(win)
                                 return vim.bo[win.buf().id].modified
                             end
@@ -262,7 +336,6 @@ require("lazy").setup({
                             tab.wins().foreach(function(win)
                                 if win_is_modified(win) then
                                     modified = true
-                                    return
                                 end
                             end)
 
