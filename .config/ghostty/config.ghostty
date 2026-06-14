@@ -1,0 +1,4 @@
+theme = dark:Everforest Dark Hard,light:Everforest Light Med
+app-notifications = no-clipboard-copy
+clipboard-read = allow
+clipboard-write = allow
