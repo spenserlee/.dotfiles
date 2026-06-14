@@ -75,12 +75,11 @@ echo "$THEME" > "$CURRENT_FILE"
 # Source the active theme conf DIRECTLY (not ~/.tmux.conf). Re-sourcing the full
 # config would re-trigger tpm and the theme plugins' default-sourcing hooks,
 # which clobber our selection. Sourcing the conf alone is also much faster.
+mkdir -p "$THEMES_DIR"
 ln -sfn "$TARGET" "$ACTIVE_LINK"
 if command -v tmux &>/dev/null && tmux info &>/dev/null 2>&1; then
-    tmux source-file "$ACTIVE_LINK"
-    # Force a full status bar redraw on all clients so the fill area (the space
-    # past the last tab) updates immediately rather than on the next activity.
-    tmux refresh-client -S
+    tmux source-file "$ACTIVE_LINK" 2>/dev/null || true
+    tmux refresh-client -S 2>/dev/null || true
     echo "  tmux: reloaded"
 else
     echo "  tmux: not running (will apply on next start)"
