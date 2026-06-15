@@ -14,6 +14,9 @@
 #   gruvbox-dark
 #   gruvbox-light
 #   nordic
+#   ayu-dark
+#   ayu-light
+#   ayu-mirage
 
 set -euo pipefail
 
@@ -23,16 +26,33 @@ CURRENT_FILE="$HOME/.config/current-theme"
 EVERFOREST_PLUGIN="$HOME/.tmux/plugins/tmux-everforest"
 GRUVBOX_PLUGIN="$HOME/.tmux/plugins/tmux-gruvbox"
 NORDIC_PLUGIN="$HOME/.tmux/plugins/tmux-nordic"
+AYU_PLUGIN="$HOME/.tmux/plugins/tmux-ayu"
 
 # ── Theme map ────────────────────────────────────────────────────────────────
 declare -A TMUX_CONF=(
-    [everforest-dark-harder]="$EVERFOREST_PLUGIN/tmux-everforest-dark-harder.conf"
-    [everforest-dark-soft]="$EVERFOREST_PLUGIN/tmux-everforest-dark-soft.conf"
-    [everforest-light-soft]="$EVERFOREST_PLUGIN/tmux-everforest-light-soft.conf"
-    [everforest-light-medium]="$EVERFOREST_PLUGIN/tmux-everforest-light-medium.conf"
+    [everforest-dark-harder]="$EVERFOREST_PLUGIN/everforest-theme.tmux"
+    [everforest-dark-soft]="$EVERFOREST_PLUGIN/everforest-theme.tmux"
+    [everforest-light-soft]="$EVERFOREST_PLUGIN/everforest-theme.tmux"
+    [everforest-light-medium]="$EVERFOREST_PLUGIN/everforest-theme.tmux"
     [gruvbox-dark]="$GRUVBOX_PLUGIN/tmux-gruvbox-dark.conf"
     [gruvbox-light]="$GRUVBOX_PLUGIN/tmux-gruvbox-light.conf"
-    [nordic]="$NORDIC_PLUGIN/tmux-nordic.conf"
+    [nordic]="$NORDIC_PLUGIN/nordic.tmux"
+    [ayu-dark]="$AYU_PLUGIN/tmux-ayu-dark.tmux"
+    [ayu-light]="$AYU_PLUGIN/tmux-ayu-light.tmux"
+    [ayu-mirage]="$AYU_PLUGIN/tmux-ayu-mirage.tmux"
+)
+
+# Variant name to pass to each theme's entrypoint .tmux script.
+# Leave empty for themes that source .conf directly (gruvbox).
+declare -A TMUX_VARIANT=(
+    [everforest-dark-harder]="dark-harder"
+    [everforest-dark-soft]="dark-soft"
+    [everforest-light-soft]="light-soft"
+    [everforest-light-medium]="light-medium"
+    [nordic]="default"
+    [ayu-dark]="dark"
+    [ayu-light]="light"
+    [ayu-mirage]="mirage"
 )
 
 # ── No argument: show status ─────────────────────────────────────────────────
@@ -79,7 +99,22 @@ echo "$THEME" > "$CURRENT_FILE"
 mkdir -p "$THEMES_DIR"
 ln -sfn "$TARGET" "$ACTIVE_LINK"
 if command -v tmux &>/dev/null && tmux info &>/dev/null 2>&1; then
-    tmux source-file "$ACTIVE_LINK" 2>/dev/null || true
+    # Clear any leftover window-dimming settings from previous themes
+    tmux set-option -gu window-style 2>/dev/null || true
+    tmux set-option -gu window-active-style 2>/dev/null || true
+
+    variant="${TMUX_VARIANT[$THEME]:-}"
+    resolved=$(readlink -f "$ACTIVE_LINK")
+    case "$resolved" in
+        *.tmux)
+            if [[ -n "$variant" ]]; then
+                bash "$resolved" "$variant" 2>/dev/null || true
+            else
+                bash "$resolved" 2>/dev/null || true
+            fi
+            ;;
+        *)      tmux source-file "$resolved" 2>/dev/null || true ;;
+    esac
     tmux refresh-client -S 2>/dev/null || true
     echo "  tmux: reloaded"
 else
@@ -128,25 +163,31 @@ if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
     else
         # colorScheme: must exactly match a "name" in the "schemes" array.
         declare -A WT_COLOR_SCHEME=(
-            [everforest-dark-harder]="Everforest Dark Harder"
+            [everforest-dark-harder]="Everforest Dark Hard"
             [everforest-dark-soft]="Everforest Dark Medium"
             [everforest-light-soft]="Everforest Soft Light"
             [everforest-light-medium]="Everforest Soft Light"
             [gruvbox-dark]="Gruvbox Dark"
             [gruvbox-light]="Gruvbox Light"
             [nordic]="Nordic"
+            [ayu-dark]="Ayu Dark"
+            [ayu-light]="Ayu Light"
+            [ayu-mirage]="Ayu Mirage"
         )
 
         # UI chrome theme: must exactly match a "name" in the "themes" array.
         # All required chrome themes now exist in settings.json.
         declare -A WT_UI_THEME=(
-            [everforest-dark-harder]="Everforest Dark Harder"
+            [everforest-dark-harder]="Everforest Dark Hard"
             [everforest-dark-soft]="Everforest Dark Medium"
             [everforest-light-soft]="Everforest Soft Light"
             [everforest-light-medium]="Everforest Soft Light"
             [gruvbox-dark]="Gruvbox Dark"
             [gruvbox-light]="Gruvbox Light"
             [nordic]="Nordic"
+            [ayu-dark]="Ayu Dark"
+            [ayu-light]="Ayu Light"
+            [ayu-mirage]="Ayu Mirage"
         )
 
         cs="${WT_COLOR_SCHEME[$THEME]:-}"
@@ -188,6 +229,9 @@ if command -v ghostty &>/dev/null && [[ -d "$HOME/.config/ghostty/auto" ]]; then
         [gruvbox-dark]="Gruvbox Dark"
         [gruvbox-light]="Gruvbox Light"
         [nordic]="Nord"
+        [ayu-dark]="Ayu"
+        [ayu-light]="Ayu Light"
+        [ayu-mirage]="Ayu Mirage"
     )
 
     gtheme="${GHOSTTY_THEME[$THEME]:-}"

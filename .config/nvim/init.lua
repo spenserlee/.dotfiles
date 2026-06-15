@@ -110,6 +110,11 @@ require("lazy").setup({
         priority = 1000,
     },
     {
+        "shatur/neovim-ayu",
+        lazy = false,
+        priority = 1000,
+    },
+    {
         "spenserlee/theme-switch.nvim",
         name = "theme-switch.nvim",
         lazy = false,
@@ -118,6 +123,7 @@ require("lazy").setup({
             "ibhagwan/fzf-lua",
             "ellisonleao/gruvbox.nvim",
             "AlexvZyl/nordic.nvim",
+            "shatur/neovim-ayu",
         },
         -- The plugin registers no keymap; map the picker here so <leader>cs
         -- works immediately (before the plugin's setup runs).
@@ -179,6 +185,19 @@ require("lazy").setup({
                 end
             end
 
+            local function ayu(variant)
+                return function()
+                    if variant == "light" then
+                        vim.o.background = "light"
+                    else
+                        vim.o.background = "dark"
+                    end
+                    require("ayu").setup({
+                        mirage = variant == "mirage",
+                    })
+                end
+            end
+
             return {
                 default = "everforest-dark-harder",
                 themes = {
@@ -189,6 +208,9 @@ require("lazy").setup({
                     ["gruvbox-dark"]            = { colorscheme = "gruvbox",     config = gruvbox("dark",  "#282828", "#32302f") },
                     ["gruvbox-light"]           = { colorscheme = "gruvbox",     config = gruvbox("light", "#fbf1c7", "#f2e5bc") },
                     ["nordic"]                  = { colorscheme = "nordic",      config = nordic() },
+                    ["ayu-dark"]                = { colorscheme = "ayu",         config = ayu("dark") },
+                    ["ayu-light"]               = { colorscheme = "ayu",         config = ayu("light") },
+                    ["ayu-mirage"]              = { colorscheme = "ayu",         config = ayu("mirage") },
                 },
             }
         end,
@@ -487,7 +509,7 @@ require("lazy").setup({
         },
         keys = {
             {
-                "<leader>?",
+                "<leader>x",
                 function()
                     require("which-key").show({ global = false })
                 end,

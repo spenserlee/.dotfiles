@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# tmux-widget — colorized CPU + memory usage for tmux status bar
+# Only the numeric values and % signs are colored; labels stay default.
+# Colors use ANSI names (green, yellow, red…) that map to the terminal's
+# configured palette — automatically theme-aware.
+
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/tmux-widget-cpu"
+
+# ── Memory (single awk) ──
+mem_pct=$(awk '
+  /^MemTotal:/     { mt=$2 }
+  /^MemAvailable:/ { ma=$2 }
+  END { mu=mt-ma; printf "%d", mu*100/mt }
+' /proc/meminfo)
+
+# ── CPU (single awk + cached delta) ──
+read -r cpu_now idle_now <<< "$(awk '
+  /^cpu / { for(i=2;i<=NF;i++) t+=$i; print t,$5; exit }
+' /proc/stat)"
+
+cpu_pct=0
+if [[ -f "$CACHE" ]]; then
+    read -r prev_cpu prev_idle < "$CACHE"
+    diff_cpu=$((cpu_now - prev_cpu))
+    diff_idle=$((idle_now - prev_idle))
+    (( diff_cpu > 0 )) && cpu_pct=$(( (diff_cpu - diff_idle) * 100 / diff_cpu ))
+fi
+echo "$cpu_now $idle_now" > "$CACHE"
+
+# ── Color thresholds (ANSI names → terminal palette) ──
+pc() {
+    local pct=$1
+    if   (( pct < 20 )); then echo white
+    elif (( pct < 40 )); then echo green
+    elif (( pct < 60 )); then echo yellow
+    elif (( pct < 80 )); then echo brightred
+    else                      echo red
+    fi
+}
+
+echo "CPU:#[fg=$(pc $cpu_pct)]${cpu_pct}%#[fg=default] MEM:#[fg=$(pc $mem_pct)]${mem_pct}%#[fg=default]"
