@@ -1,4 +1,4 @@
-theme = dark:Everforest Dark Hard,light:Everforest Light Med
+config-file = ?auto/theme.ghostty
 app-notifications = no-clipboard-copy
 clipboard-read = allow
 clipboard-write = allow
