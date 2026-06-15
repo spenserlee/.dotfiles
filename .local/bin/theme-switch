@@ -194,6 +194,12 @@ if command -v ghostty &>/dev/null && [[ -d "$HOME/.config/ghostty/auto" ]]; then
     if [[ -n "$gtheme" ]]; then
         echo "theme = $gtheme" > "$GHOSTTY_AUTO"
         echo "  ghostty: theme -> '$gtheme'"
+        # Trigger config reload via SIGUSR2 (PR #7759)
+        if pgrep -x ghostty &>/dev/null; then
+            pkill -SIGUSR2 ghostty 2>/dev/null && \
+                echo "  ghostty: config reloaded" || \
+                echo "  ghostty: reload signal failed"
+        fi
     fi
 fi
 
