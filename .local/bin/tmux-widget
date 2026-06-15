@@ -15,7 +15,7 @@ mem_pct=$(awk '
 
 # ── CPU (single awk + cached delta) ──
 read -r cpu_now idle_now <<< "$(awk '
-  /^cpu / { for(i=2;i<=NF;i++) t+=$i; print t,$5; exit }
+  /^cpu / { idle=$5+$6; for(i=2;i<=9;i++) t+=$i; print t,idle; exit }
 ' /proc/stat)"
 
 cpu_pct=0
