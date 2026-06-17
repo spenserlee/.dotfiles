@@ -2,3 +2,14 @@ config-file = ?auto/theme.ghostty
 app-notifications = no-clipboard-copy
 clipboard-read = allow
 clipboard-write = allow
+
+command-palette-entry = title:Theme: Ayu Dark, action:"text:theme-switch ayu-dark\r"
+command-palette-entry = title:Theme: Ayu Light, action:"text:theme-switch ayu-light\r"
+command-palette-entry = title:Theme: Ayu Mirage, action:"text:theme-switch ayu-mirage\r"
+command-palette-entry = title:Theme: Everforest Dark Harder, action:"text:theme-switch everforest-dark-harder\r"
+command-palette-entry = title:Theme: Everforest Dark Soft, action:"text:theme-switch everforest-dark-soft\r"
+command-palette-entry = title:Theme: Everforest Light Medium, action:"text:theme-switch everforest-light-medium\r"
+command-palette-entry = title:Theme: Everforest Light Soft, action:"text:theme-switch everforest-light-soft\r"
+command-palette-entry = title:Theme: Gruvbox Dark, action:"text:theme-switch gruvbox-dark\r"
+command-palette-entry = title:Theme: Gruvbox Light, action:"text:theme-switch gruvbox-light\r"
+command-palette-entry = title:Theme: Nordic, action:"text:theme-switch nordic\r"
