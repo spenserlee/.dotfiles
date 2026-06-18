@@ -13,7 +13,11 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 
 # dotfiles config git management
-alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+# * use an exposed function so vim can execute it.
+dotfig() {
+    /usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME" "$@"
+}
+export -f dotfig
 
 # maintain git completion for dotfile config alias
 source /usr/share/bash-completion/completions/git
