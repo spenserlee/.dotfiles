@@ -17,7 +17,11 @@ export USESUDO=/usr/bin/sudo
 export FORTIPKG=/home/slee01/fortipkg
 
 # dotfiles config git management
-alias dotfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+# * use an exposed function so vim can execute it.
+dotfig() {
+    /usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME" "$@"
+}
+export -f dotfig
 
 # maintain git completion for dotfile config alias
 source /usr/share/bash-completion/completions/git
