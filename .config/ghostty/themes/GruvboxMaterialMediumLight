@@ -1,0 +1,23 @@
+# gruvbox-material (GruvboxMaterialMediumLight) - material palette
+palette = 0=#504945
+palette = 1=#C14A4A
+palette = 2=#6C782E
+palette = 3=#B47109
+palette = 4=#45707A
+palette = 5=#945E80
+palette = 6=#4C7A5D
+palette = 7=#D4BE98
+palette = 8=#504945
+palette = 9=#C14A4A
+palette = 10=#6C782E
+palette = 11=#B47109
+palette = 12=#45707A
+palette = 13=#945E80
+palette = 14=#4C7A5D
+palette = 15=#D4BE98
+background = #FBF1C7
+foreground = #654735
+cursor-color = #654735
+cursor-text = #FBF1C7
+selection-background = #D5C4A1
+selection-foreground = #654735

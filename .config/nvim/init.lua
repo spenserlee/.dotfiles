@@ -115,6 +115,11 @@ require("lazy").setup({
         priority = 1000,
     },
     {
+        "sainnhe/gruvbox-material",
+        lazy = false,
+        priority = 1000,
+    },
+    {
         "spenserlee/theme-switch.nvim",
         name = "theme-switch.nvim",
         lazy = false,
@@ -124,6 +129,7 @@ require("lazy").setup({
             "ellisonleao/gruvbox.nvim",
             "AlexvZyl/nordic.nvim",
             "shatur/neovim-ayu",
+            "sainnhe/gruvbox-material",
         },
         -- The plugin registers no keymap; map the picker here so <leader>cs
         -- works immediately (before the plugin's setup runs).
@@ -198,6 +204,20 @@ require("lazy").setup({
                 end
             end
 
+            -- Gruvbox-material: a Vim/Neovim colorscheme configured via globals.
+            -- `background` selects the hardness (hard/medium/soft); `palette` is
+            -- pinned to "material" (the default is "mix"); italics enabled.
+            local function gruvbox_material(variant)
+                return function()
+                    local bg, hardness = variant:match("^(%a+)-(%a+)$")
+                    vim.o.background = bg
+                    vim.g.gruvbox_material_background = hardness
+                    vim.g.gruvbox_material_palette = "material"
+                    vim.g.gruvbox_material_enable_italic = 1
+                    vim.g.gruvbox_material_better_performance = 1
+                end
+            end
+
             return {
                 default = "everforest-dark-harder",
                 themes = {
@@ -211,6 +231,12 @@ require("lazy").setup({
                     ["ayu-dark"]                = { colorscheme = "ayu",         config = ayu("dark") },
                     ["ayu-light"]               = { colorscheme = "ayu",         config = ayu("light") },
                     ["ayu-mirage"]              = { colorscheme = "ayu",         config = ayu("mirage") },
+                    ["gruvbox-material-dark-hard"]   = { colorscheme = "gruvbox-material", config = gruvbox_material("dark-hard") },
+                    ["gruvbox-material-dark-medium"] = { colorscheme = "gruvbox-material", config = gruvbox_material("dark-medium") },
+                    ["gruvbox-material-dark-soft"]   = { colorscheme = "gruvbox-material", config = gruvbox_material("dark-soft") },
+                    ["gruvbox-material-light-hard"]   = { colorscheme = "gruvbox-material", config = gruvbox_material("light-hard") },
+                    ["gruvbox-material-light-medium"] = { colorscheme = "gruvbox-material", config = gruvbox_material("light-medium") },
+                    ["gruvbox-material-light-soft"]   = { colorscheme = "gruvbox-material", config = gruvbox_material("light-soft") },
                 },
             }
         end,
