@@ -495,6 +495,37 @@ require("lazy").setup({
                 end,
                 desc = "FZF Signature Files"
             },
+            { "<leader>om", function()
+                    local mantis_dir = vim.fn.expand("~/MANTIS")
+                    require('fzf-lua').files({
+                        prompt = 'mantis> ',
+                        cwd = mantis_dir,
+                        cmd = "fd --type d --max-depth 1",
+                        file_icons = false,
+                        git_icons = false,
+                        actions = {
+                            ["default"] = function(selected)
+                                local dir = selected[1]:gsub("/+$", "")
+                                vim.cmd.edit(vim.fn.fnameescape(mantis_dir .. "/" .. dir))
+                            end,
+                        },
+                    })
+                end,
+                desc = "FZF MANTIS Dirs (open in Oil)"
+            },
+            {"<leader>oM", function()
+                vim.ui.input({ prompt = "New MANTIS dir name: " }, function(name)
+                    if not name or name == "" then
+                        return
+                    end
+
+                    local mantis_dir = vim.fn.expand("~/MANTIS")
+                    local dir_path = mantis_dir .. "/" .. name
+
+                    vim.fn.mkdir(dir_path, "p")
+                    vim.cmd.edit(vim.fn.fnameescape(dir_path .. "/notes.md"))
+                end)
+            end, desc = "New MANTIS dir + notes.md (create & edit)"},
         },
     },
     {
@@ -2307,6 +2338,39 @@ end, { nargs = "*" })
 vim.api.nvim_create_user_command('Term', function(opts)
     vim.cmd('tabnew | term ' .. opts.args)
 end, { nargs = '*' })
+
+-- :MantisSearch [query] - ripgrep (via fzf-lua live_grep) across ~/MANTIS recursively.
+--
+-- The optional [query] is pre-filled into the live prompt, so you can launch a
+-- search directly from the command line. It is passed through unescaped
+-- (no_esc=true) so it behaves EXACTLY as if you had typed it in the picker --
+-- meaning the " -- " glob separator (configured in the fzf-lua grep opts
+-- above: rg_glob=true, glob_flag="--iglob", glob_separator="%s%-%-") works
+-- from the command line too. Text before " -- " is the search pattern; text
+-- after is one or more glob filters handed to rg (multiple globs are OR'd).
+--
+--   :MantisSearch                          open picker with empty query (live)
+--   :MantisSearch timeout                  "timeout" across ALL files
+--   :MantisSearch timeout -- *.md          "timeout" in all .md files
+--   :MantisSearch panic -- *.txt           "panic" in all .txt files
+--   :MantisSearch sig -- **/notes.md       "sig" only in notes.md (any depth)
+--   :MantisSearch error -- *.md *.txt      "error" in .md OR .txt files
+--
+-- You can also just run :MantisSearch and type any of the above into the
+-- prompt interactively. Because the query is unescaped, regex metacharacters
+-- (e.g. ".", "*") in the part BEFORE " -- " are treated as regex, same as the
+-- live prompt; wrap intent literally with a leading ^ or use \\. where needed.
+vim.api.nvim_create_user_command('MantisSearch', function(opts)
+    local grep_opts = {
+        cwd = vim.fn.expand("~/MANTIS"),
+        prompt = "mantis-grep> ",
+    }
+    if opts.args and #opts.args > 0 then
+        grep_opts.search = opts.args
+        grep_opts.no_esc = true
+    end
+    require('fzf-lua').live_grep(grep_opts)
+end, { nargs = "*", desc = "Ripgrep ~/MANTIS (e.g. :MantisSearch timeout -- *.md)" })
 
 -- UndoTree
 vim.keymap.set("n", "<leader>u", function()
