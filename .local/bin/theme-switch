@@ -17,6 +17,12 @@
 #   ayu-dark
 #   ayu-light
 #   ayu-mirage
+#   gruvbox-material-dark-hard
+#   gruvbox-material-dark-medium
+#   gruvbox-material-dark-soft
+#   gruvbox-material-light-hard
+#   gruvbox-material-light-medium
+#   gruvbox-material-light-soft
 
 set -euo pipefail
 
@@ -27,6 +33,7 @@ EVERFOREST_PLUGIN="$HOME/.tmux/plugins/tmux-everforest"
 GRUVBOX_PLUGIN="$HOME/.tmux/plugins/tmux-gruvbox"
 NORDIC_PLUGIN="$HOME/.tmux/plugins/tmux-nordic"
 AYU_PLUGIN="$HOME/.tmux/plugins/tmux-ayu"
+GRUVBOX_MATERIAL_PLUGIN="$HOME/.tmux/plugins/tmux-gruvbox-material"
 
 # ── Theme map ────────────────────────────────────────────────────────────────
 declare -A TMUX_CONF=(
@@ -40,6 +47,12 @@ declare -A TMUX_CONF=(
     [ayu-dark]="$AYU_PLUGIN/tmux-ayu-dark.tmux"
     [ayu-light]="$AYU_PLUGIN/tmux-ayu-light.tmux"
     [ayu-mirage]="$AYU_PLUGIN/tmux-ayu-mirage.tmux"
+    [gruvbox-material-dark-hard]="$GRUVBOX_MATERIAL_PLUGIN/gruvbox-material.tmux"
+    [gruvbox-material-dark-medium]="$GRUVBOX_MATERIAL_PLUGIN/gruvbox-material.tmux"
+    [gruvbox-material-dark-soft]="$GRUVBOX_MATERIAL_PLUGIN/gruvbox-material.tmux"
+    [gruvbox-material-light-hard]="$GRUVBOX_MATERIAL_PLUGIN/gruvbox-material.tmux"
+    [gruvbox-material-light-medium]="$GRUVBOX_MATERIAL_PLUGIN/gruvbox-material.tmux"
+    [gruvbox-material-light-soft]="$GRUVBOX_MATERIAL_PLUGIN/gruvbox-material.tmux"
 )
 
 # Variant name to pass to each theme's entrypoint .tmux script.
@@ -53,6 +66,12 @@ declare -A TMUX_VARIANT=(
     [ayu-dark]="dark"
     [ayu-light]="light"
     [ayu-mirage]="mirage"
+    [gruvbox-material-dark-hard]="dark-hard"
+    [gruvbox-material-dark-medium]="dark-medium"
+    [gruvbox-material-dark-soft]="dark-soft"
+    [gruvbox-material-light-hard]="light-hard"
+    [gruvbox-material-light-medium]="light-medium"
+    [gruvbox-material-light-soft]="light-soft"
 )
 
 # ── No argument: show status ─────────────────────────────────────────────────
@@ -173,6 +192,12 @@ if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
             [ayu-dark]="Ayu Dark"
             [ayu-light]="Ayu Light"
             [ayu-mirage]="Ayu Mirage"
+            [gruvbox-material-dark-hard]="GruvboxMaterialHardDark"
+            [gruvbox-material-dark-medium]="GruvboxMaterialMediumDark"
+            [gruvbox-material-dark-soft]="GruvboxMaterialSoftDark"
+            [gruvbox-material-light-hard]="GruvboxMaterialHardLight"
+            [gruvbox-material-light-medium]="GruvboxMaterialMediumLight"
+            [gruvbox-material-light-soft]="GruvboxMaterialSoftLight"
         )
 
         # UI chrome theme: must exactly match a "name" in the "themes" array.
@@ -188,6 +213,12 @@ if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
             [ayu-dark]="Ayu Dark"
             [ayu-light]="Ayu Light"
             [ayu-mirage]="Ayu Mirage"
+            [gruvbox-material-dark-hard]="GruvboxMaterialHardDark"
+            [gruvbox-material-dark-medium]="GruvboxMaterialMediumDark"
+            [gruvbox-material-dark-soft]="GruvboxMaterialSoftDark"
+            [gruvbox-material-light-hard]="GruvboxMaterialHardLight"
+            [gruvbox-material-light-medium]="GruvboxMaterialMediumLight"
+            [gruvbox-material-light-soft]="GruvboxMaterialSoftLight"
         )
 
         cs="${WT_COLOR_SCHEME[$THEME]:-}"
@@ -232,6 +263,12 @@ if command -v ghostty &>/dev/null && [[ -d "$HOME/.config/ghostty/auto" ]]; then
         [ayu-dark]="Ayu"
         [ayu-light]="Ayu Light"
         [ayu-mirage]="Ayu Mirage"
+        [gruvbox-material-dark-hard]="GruvboxMaterialHardDark"
+        [gruvbox-material-dark-medium]="GruvboxMaterialMediumDark"
+        [gruvbox-material-dark-soft]="GruvboxMaterialSoftDark"
+        [gruvbox-material-light-hard]="GruvboxMaterialHardLight"
+        [gruvbox-material-light-medium]="GruvboxMaterialMediumLight"
+        [gruvbox-material-light-soft]="GruvboxMaterialSoftLight"
     )
 
     gtheme="${GHOSTTY_THEME[$THEME]:-}"
@@ -255,5 +292,37 @@ fi
 #     PROFILE_UUID="your-gnome-terminal-profile-uuid-here"
 #     dconf write /org/gnome/terminal/legacy/profiles:/:${PROFILE_UUID}/background-color "'#1E2327'"
 # fi
+
+# ── 7. opencode TUI theme ────────────────────────────────────────────────────
+# opencode ships a small set of built-in TUI themes; map each terminal theme to
+# the closest family. tui.json is read at launch, so this applies on the next
+# opencode start (no live reload).
+OPENCODE_TUI="$HOME/.config/opencode/tui.json"
+if [[ -f "$OPENCODE_TUI" ]] && command -v jq &>/dev/null; then
+    declare -A OPENCODE_THEME=(
+        [everforest-dark-harder]="everforest"
+        [everforest-dark-soft]="everforest"
+        [everforest-light-soft]="everforest"
+        [everforest-light-medium]="everforest"
+        [gruvbox-dark]="gruvbox"
+        [gruvbox-light]="gruvbox"
+        [nordic]="nord"
+        [ayu-dark]="ayu"
+        [ayu-light]="ayu"
+        [ayu-mirage]="ayu"
+        [gruvbox-material-dark-hard]="gruvbox"
+        [gruvbox-material-dark-medium]="gruvbox"
+        [gruvbox-material-dark-soft]="gruvbox"
+        [gruvbox-material-light-hard]="gruvbox"
+        [gruvbox-material-light-medium]="gruvbox"
+        [gruvbox-material-light-soft]="gruvbox"
+    )
+    otheme="${OPENCODE_THEME[$THEME]:-}"
+    if [[ -n "$otheme" ]]; then
+        tmp=$(mktemp --suffix=.json)
+        jq --arg t "$otheme" '.theme = $t' "$OPENCODE_TUI" > "$tmp" && mv "$tmp" "$OPENCODE_TUI" || true
+        echo "  opencode: theme -> '$otheme' (applies on next start)"
+    fi
+fi
 
 echo "Done."
