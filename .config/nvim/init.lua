@@ -2215,6 +2215,10 @@ vim.api.nvim_create_autocmd({
 }, {
   group = group,
   callback = function()
+    local win_config = vim.api.nvim_win_get_config(0)
+    if win_config and win_config.relative ~= "" then
+      return
+    end
     -- Only enable if NOT in insert mode
     if vim.fn.mode() ~= "i" then
       vim.opt_local.relativenumber = true
