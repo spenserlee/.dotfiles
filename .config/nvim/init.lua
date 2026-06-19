@@ -1852,6 +1852,32 @@ require("lazy").setup({
                         return vim.split(input, " ")  -- Split the input into a list of arguments
                     end,
                 },
+                {
+                    name = "Attach to iscan (Docker gdbserver)",
+                    type = "cppdbg",
+                    request = "launch",
+                    program = function()
+                        return vim.fn.getcwd() .. "/builddir/tools/scanner/iscan"
+                    end,
+                    miDebuggerServerAddress = "172.20.0.2:2345",
+                    miDebuggerPath = "/usr/bin/gdb",
+                    cwd = "${workspaceFolder}",
+                    environment = {},
+                    externalConsole = false,
+                    MIMode = "gdb",
+                    setupCommands = {
+                        {
+                            text = "-enable-pretty-printing",
+                            description = "Enable pretty-printing",
+                            ignoreFailures = true,
+                        },
+                        {
+                            text = "-gdb-set disassembly-flavor intel",
+                            description = "Set disassembly flavor to Intel",
+                            ignoreFailures = true,
+                        },
+                    },
+                },
             }
             dap.configurations.c = dap.configurations.cpp
 
@@ -2259,15 +2285,24 @@ vim.api.nvim_create_autocmd("FileType", {
 -- =============================================================================
 
 -- Async Make Command
+--   :Make          - repeat last build (or no-arg build if none yet)
+--   :Make <args>   - run a new build with <args>
+--   :Make cancel   - stop the current background build
 vim.api.nvim_create_user_command('Make', function(opts)
+    if opts.args == "cancel" then
+        require('async_make').stop()
+        return
+    end
     -- Allow repeating the last make with empty args or passing new ones
     local args = opts.args ~= "" and opts.args or (vim.g.last_make_args or "")
     vim.g.last_make_args = args
     require('async_make').make(args)
 end, { nargs = "*" })
 
--- Keybind to stop current background build
-vim.keymap.set('n', '<leader>mc', function() require('async_make').stop() end, { desc = "Cancel Make" })
+-- Terminal command to open new tab with output of executed command.
+vim.api.nvim_create_user_command('Term', function(opts)
+    vim.cmd('tabnew | term ' .. opts.args)
+end, { nargs = '*' })
 
 -- UndoTree
 vim.keymap.set("n", "<leader>u", function()
