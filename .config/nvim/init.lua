@@ -1580,6 +1580,11 @@ require("lazy").setup({
                     keymaps = {
                         switch_to_scopes = "o",
                     },
+                    winbar = {
+                        controls = {
+                            enabled = true,
+                        }
+                    },
                     windows = {
                         -- Section views (Scopes/Watches/etc) on the left,
                         -- terminal/console output on the right.
@@ -1595,6 +1600,27 @@ require("lazy").setup({
         config = function()
             local dap = require("dap")
             local ui = require("dapui")
+
+            -- Parse a free-form argument string into argv, the way a shell
+            -- would for the common cases: collapse whitespace runs and expand
+            -- a leading "~" to $HOME. nvim-dap launches the debugee directly,
+            -- NOT through a shell, so without this "~/foo" reaches the program
+            -- literally (the debugee then reports "No such file or directory").
+            local function parse_program_args(input)
+                if not input or input == "" then return {} end
+                local args = vim.split(input, "%s+", { trimempty = true })
+                local home = os.getenv("HOME")
+                for i, arg in ipairs(args) do
+                    if home and arg:sub(1, 1) == "~" then
+                        if arg == "~" then
+                            args[i] = home
+                        elseif arg:sub(2, 2) == "/" then
+                            args[i] = home .. arg:sub(2)
+                        end
+                    end
+                end
+                return args
+            end
 
             -- Track which DAP UI backend is active: "dapui" | "dapview"
             vim.g.dap_ui_backend = vim.g.dap_ui_backend or "dapview"
@@ -1764,6 +1790,51 @@ require("lazy").setup({
                 ui.eval(nil, { enter = true })
             end, { desc = "Evaluate variable" })
 
+            -- Watch the word under cursor.
+            --   <leader>w  - add <cword> as-is
+            --   <leader>W  - add <cword> rendered as a C string
+            -- Pushes to BOTH dap-ui and dap-view (pcall-guarded) so :DapToggleUI
+            -- keeps your watches. dap-view needs a stopped session + a
+            -- coroutine (it blocks on session:request); dap-ui just stores the
+            -- expression and evaluates on render.
+            local function add_watch(expr)
+                if expr == "" then return end
+                local session = dap.session()
+                local stopped = session ~= nil and session.stopped_thread_id ~= nil
+
+                -- dap-ui: stores regardless of session state.
+                pcall(function() require("dapui").elements.watches.add(expr) end)
+
+                -- dap-view: only meaningful when stopped (else it just noisily
+                -- notifies). Mirror so the watch survives a backend swap.
+                if stopped then
+                    coroutine.wrap(function()
+                        pcall(require("dap-view.watches.actions").add_watch_expr, expr, true, true)
+                    end)()
+                elseif vim.g.dap_ui_backend == "dapview" then
+                    vim.notify("DAP: pause at a breakpoint to watch '" .. expr .. "'", vim.log.levels.WARN)
+                end
+            end
+
+            -- C-string expression for the active adapter:
+            --   codelldb (LLDB) -> "<word>,s"  (format suffix, no cast)
+            --   cppdbg (gdb)     -> "(char*)<word>"
+            local function cstring_expr(word)
+                local t = dap.session() and dap.session().config and dap.session().config.type
+                if t == "codelldb" then
+                    return word .. ",s"
+                end
+                return "(char*)" .. word
+            end
+
+            vim.keymap.set("n", "<leader>w", function()
+                add_watch(vim.fn.expand("<cword>"))
+            end, { desc = "Watch word under cursor" })
+
+            vim.keymap.set("n", "<leader>W", function()
+                add_watch(cstring_expr(vim.fn.expand("<cword>")))
+            end, { desc = "Watch word as C string" })
+
             vim.keymap.set("n", "<F1>", dap.continue, { desc = "DAP continue" })
             vim.keymap.set("n", "<F2>", dap.step_into, { desc = "DAP step into" })
             vim.keymap.set("n", "<F3>", dap.step_over, { desc = "DAP step over" })
@@ -1855,6 +1926,116 @@ require("lazy").setup({
                 end)
             end, {})
 
+            -- ----------------------------------------------------------------
+            -- :DapRedo — relaunch the last debug config without re-picking it
+            -- or re-prompting for program/args. Shows a floating buffer
+            -- pre-filled with the last program + args for editing/confirming;
+            -- <CR> launches, q/<Esc> cancels.
+            --
+            -- How it captures: nvim-dap fires `before.launch`/`before.attach`
+            -- listeners with the *request arguments* = the fully-resolved
+            -- config (functions already evaluated, ${vars} expanded), so we
+            -- deepcopy that. dap.run() on the captured config re-runs
+            -- prepare_config, but since program/args are now concrete strings
+            -- (no functions, no ${} placeholders) nothing re-prompts.
+            -- ----------------------------------------------------------------
+            local last_debug = nil
+
+            local function record_last(request)
+                if type(request) == "table" and request.type and request.request then
+                    last_debug = vim.deepcopy(request)
+                end
+            end
+            dap.listeners.before.launch.dap_record_last = function(_, _err, _response, request)
+                record_last(request)
+            end
+            dap.listeners.before.attach.dap_record_last = function(_, _err, _response, request)
+                record_last(request)
+            end
+
+            local function relaunch_cfg(cfg)
+                local function run() dap.run(cfg) end
+                if dap.session() then
+                    -- Terminate the live session first so the edited args/program
+                    -- take effect (a `restart` request may reuse the old process).
+                    dap.terminate(nil, nil, function() vim.schedule(run) end)
+                else
+                    run()
+                end
+            end
+
+            vim.api.nvim_create_user_command('DapRedo', function()
+                if not last_debug then
+                    vim.notify("DAP: nothing to redo yet (no prior launch captured)", vim.log.levels.WARN)
+                    return
+                end
+                local cfg = vim.deepcopy(last_debug)
+
+                local prog = cfg.program or ""
+                if type(prog) ~= "string" then prog = "" end
+                local args = cfg.args
+                if type(args) == "table" then args = table.concat(args, " ") end
+                if type(args) ~= "string" then args = "" end
+
+                local header = "# <CR> launch (editable)  ·  q / <Esc> cancel"
+                local lines = { header, prog, args }
+
+                local buf = vim.api.nvim_create_buf(false, true)
+                vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+                vim.bo[buf].bufhidden = "wipe"
+                vim.bo[buf].buftype = "nofile"
+
+                local width = 0
+                for _, l in ipairs(lines) do
+                    if #l > width then width = #l end
+                end
+                width = math.min(math.max(width, 60) + 2, vim.o.columns - 4)
+                local height = #lines
+                local win = vim.api.nvim_open_win(buf, true, {
+                    relative = "editor",
+                    anchor = "NW",
+                    row = math.floor((vim.o.lines - height) / 2),
+                    col = math.floor((vim.o.columns - width) / 2),
+                    width = width,
+                    height = height,
+                    border = "rounded",
+                    style = "minimal",
+                    title = " DapRedo: " .. (cfg.name or "?") .. " ",
+                    title_pos = "center",
+                })
+                vim.wo[win].wrap = false
+                vim.wo[win].cursorline = true
+                vim.wo[win].signcolumn = "no"
+                -- Highlight the header line like a comment.
+                pcall(vim.api.nvim_buf_add_highlight, buf, 0, "Comment", 0, 0, -1)
+
+                local function close_float()
+                    if vim.api.nvim_win_is_valid(win) then
+                        pcall(vim.api.nvim_win_close, win, true)
+                    end
+                    if vim.api.nvim_buf_is_valid(buf) then
+                        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+                    end
+                end
+
+                local function launch_edited()
+                    local lns = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+                    -- lns[1] = header, lns[2] = program, lns[3] = args
+                    close_float()
+                    cfg.program = lns[2] or ""
+                    cfg.args = parse_program_args(lns[3] or "")
+                    relaunch_cfg(cfg)
+                end
+
+                local opts = { buffer = buf, nowait = true, silent = true }
+                vim.keymap.set("n", "<CR>", launch_edited, opts)
+                vim.keymap.set("n", "q", close_float, opts)
+                vim.keymap.set("n", "<Esc>", close_float, opts)
+
+                -- Put cursor on the program line for quick editing.
+                vim.api.nvim_win_set_cursor(win, { 2, 0 })
+            end, { desc = "Re-run last DAP config (editable)" })
+
             local home_path = os.getenv("HOME") .. "/"
             local bin_locations = home_path .. ".local/share/nvim/mason/bin"
 
@@ -1877,63 +2058,45 @@ require("lazy").setup({
             dap.configurations.cpp = {
                 {
                     name = "Launch C/C++",
-                    type = "cppdbg",
+                    -- type = "cppdbg",
+                    type = "codelldb",
                     request = "launch",
                     program = function()
                         return vim.fn.input('Path to C/C++ executable: ', vim.fn.getcwd() .. '/', 'file')
                     end,
                     cwd = '${workspaceFolder}',
-                    stopAtEntry = true,
+                    stopOnEntry = false,
                     -- forkMode = 'both',
-                    setupCommands = {
-                        {
-                            text = '-enable-pretty-printing',
-                            description = 'enable pretty printing',
-                            ignoreFailures = false
-                        },
-                        -- {
-                        --     text = 'set detach-on-fork off',
-                        --     description = 'Both parent and child processes reamin under GDBs control',
-                        --     ignoreFailures = false
-                        -- },
-                        -- {
-                        --     text = 'set follow-fork-mode child',
-                        --     description = 'Follow the child process on fork',
-                        --     ignoreFailures = false
-                        -- }
+                    -- codelldb is LLDB-backed: `setupCommands` (gdb-MI) are
+                    -- ignored, so use `initCommands` with `settings set`.
+                    -- LLDB already pretty-prints structs/arrays; we just lift
+                    -- the C-string summary cap so char*/uint8_t* views aren't
+                    -- truncated at ~256 chars.
+                    initCommands = {
+                        "settings set target.max-string-summary-length 100000",
                     },
                     runInTerminal = false,
                     -- Prompt for arguments dynamically
                     args = function()
                         local input = vim.fn.input('Program arguments: ')
-                        return vim.split(input, " ")  -- Split the input into a list of arguments
+                        return parse_program_args(input)
                     end,
                 },
                 {
                     name = "Attach to iscan (Docker gdbserver)",
-                    type = "cppdbg",
-                    request = "launch",
-                    program = function()
-                        return vim.fn.getcwd() .. "/builddir/tools/scanner/iscan"
-                    end,
-                    miDebuggerServerAddress = "172.20.0.2:2345",
-                    miDebuggerPath = "/usr/bin/gdb",
+                    type = "codelldb",
+                    request = "attach",
+                    program = "${workspaceFolder}/builddir/tools/scanner/iscan",
                     cwd = "${workspaceFolder}",
-                    environment = {},
-                    externalConsole = false,
-                    MIMode = "gdb",
-                    setupCommands = {
-                        {
-                            text = "-enable-pretty-printing",
-                            description = "Enable pretty-printing",
-                            ignoreFailures = true,
-                        },
-                        {
-                            text = "-gdb-set disassembly-flavor intel",
-                            description = "Set disassembly flavor to Intel",
-                            ignoreFailures = true,
-                        },
+                    -- codelldb remote-gdbserver pattern: create the target,
+                    -- then `gdb-remote` attaches. (initCommands run *before*
+                    -- the target exists, so gdb-remote can't live there.)
+                    targetCreateCommands = { "target create ${program}" },
+                    processCreateCommands = { "gdb-remote 172.20.0.2:2345" },
+                    initCommands = {
+                        "settings set target.max-string-summary-length 100000",
                     },
+                    stopOnEntry = false,
                 },
             }
             dap.configurations.c = dap.configurations.cpp
@@ -1965,12 +2128,14 @@ require("lazy").setup({
                             file:close()
                         end
                         table.insert(commands, 1, script_import)
+                        -- Don't truncate C-string summaries (uint8_t* viewed as char*).
+                        table.insert(commands, "settings set target.max-string-summary-length 100000")
 
                         return commands
                     end,
                     args = function()
                         local input = vim.fn.input('Program arguments: ')
-                        return vim.split(input, " ")  -- Split the input into a list of arguments
+                        return parse_program_args(input)
                     end,
                 }
             }
@@ -1987,7 +2152,7 @@ require("lazy").setup({
                     stopAtEntry = true,
                     args = function()
                         local input = vim.fn.input('Program arguments: ')
-                        return vim.split(input, " ")
+                        return parse_program_args(input)
                     end,
                 }
             }
