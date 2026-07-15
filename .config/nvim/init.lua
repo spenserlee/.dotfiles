@@ -16,6 +16,47 @@ vim.opt.errorbells = false             -- Silence error bells
 vim.opt.mouse = "n"                    -- Use mouse in normal mode
 vim.opt.backspace = { "indent", "eol", "start" } -- Backspace acts sensibly
 
+-- Clipboard: when inside tmux, use tmux's own buffer as the "+" register.
+-- The buffer lives in the tmux server process, so it survives desktop-session
+-- logouts and is shared by every nvim instance attached to the same tmux
+-- server (across windows, tabs, and sessions). This sidesteps wl-copy/xclip
+-- entirely, so a stale WAYLAND_DISPLAY or a dead Wayland socket can never
+-- break yank/put. Outside tmux, fall back to nvim's default (auto-detected
+-- wl-copy/xclip) — that path is fine for a short-lived nvim launched from a
+-- GUI terminal where the display is current.
+--
+-- When Wayland is alive, also push yanks to the GUI clipboard via wl-copy
+-- (best-effort) so the system clipboard stays in sync. The guard checks the
+-- socket exists at yank time, so it's safe even if the GNOME session is gone.
+if os.getenv("TMUX") then
+  local uv = vim.uv or vim.loop
+
+  local function wayland_alive()
+    local wd  = os.getenv("WAYLAND_DISPLAY")
+    local xdg = os.getenv("XDG_RUNTIME_DIR")
+    return wd ~= nil and xdg ~= nil and uv.fs_stat(xdg .. "/" .. wd) ~= nil
+  end
+
+  local function tmux_copy(lines)
+    local text = table.concat(lines, "\n")
+    vim.fn.system({ "tmux", "load-buffer", "-" }, text)
+    if wayland_alive() then
+      vim.fn.system({ "wl-copy" }, text)
+    end
+  end
+
+  local function tmux_paste()
+    return vim.fn.systemlist({ "tmux", "save-buffer", "-" })
+  end
+
+  vim.g.clipboard = {
+    name = "tmux",
+    copy  = { ["+"] = tmux_copy, ["*"] = tmux_copy },
+    paste = { ["+"] = tmux_paste, ["*"] = tmux_paste },
+    cache_enabled = 0,
+  }
+end
+
 -- UI settings
 vim.opt.encoding = "utf-8"
 vim.opt.title = true                   -- Show what's open
@@ -1718,12 +1759,22 @@ require("lazy").setup({
             -- deepcopy that. dap.run() on the captured config re-runs
             -- prepare_config, but since program/args are now concrete strings
             -- (no functions, no ${} placeholders) nothing re-prompts.
+            --
+            -- The captured config is also written to a state file so :DapRedo
+            -- survives an nvim restart (it's reloaded lazily on first use).
             -- ----------------------------------------------------------------
             local last_debug = nil
+            local last_debug_path = vim.fn.stdpath("state") .. "/dap_last_run.json"
 
             local function record_last(request)
                 if type(request) == "table" and request.type and request.request then
                     last_debug = vim.deepcopy(request)
+                    pcall(function()
+                        local json = vim.fn.json_encode(request)
+                        if type(json) == "string" then
+                            vim.fn.writefile({ json }, last_debug_path)
+                        end
+                    end)
                 end
             end
             dap.listeners.before.launch.dap_record_last = function(_, _err, _response, request)
@@ -1731,6 +1782,49 @@ require("lazy").setup({
             end
             dap.listeners.before.attach.dap_record_last = function(_, _err, _response, request)
                 record_last(request)
+            end
+
+            -- Get the last-run config, lazy-loading it from the state file so
+            -- :DapRedo and the <F1> picker work across nvim restarts.
+            local function get_last_debug()
+                if last_debug then return last_debug end
+                local lines = vim.fn.readfile(last_debug_path)
+                if type(lines) == "table" and #lines > 0 then
+                    local ok, decoded = pcall(vim.fn.json_decode, table.concat(lines, ""))
+                    if ok and type(decoded) == "table"
+                        and decoded.type and decoded.request then
+                        last_debug = decoded
+                    end
+                end
+                return last_debug
+            end
+
+            -- Inject a "Redo last" entry into nvim-dap's native config picker
+            -- (the one <F1> shows when no session is running). When selected,
+            -- its __call schedules :DapRedo (the editable re-launch float) and
+            -- returns a config carrying `dap.ABORT`, so dap cleanly aborts the
+            -- would-be launch with a harmless "Run aborted" notice. The actual
+            -- launch happens from inside :DapRedo once you confirm/edit args.
+            dap.providers.configs["user.redo"] = function()
+                local last = get_last_debug()
+                if not last then return {} end
+                return {
+                    setmetatable({
+                        name = "↻ Redo last" .. (last.name and (": " .. last.name) or "…"),
+                        type = last.type or "codelldb",
+                        request = last.request or "launch",
+                    }, {
+                        __call = function(self)
+                            vim.schedule(function() vim.cmd("DapRedo") end)
+                            return {
+                                name = self.name,
+                                type = self.type,
+                                request = self.request,
+                                program = dap.ABORT,
+                            }
+                        end,
+                    }),
+                }
             end
 
             local function relaunch_cfg(cfg)
@@ -1745,7 +1839,7 @@ require("lazy").setup({
             end
 
             vim.api.nvim_create_user_command('DapRedo', function()
-                if not last_debug then
+                if not get_last_debug() then
                     vim.notify("DAP: nothing to redo yet (no prior launch captured)", vim.log.levels.WARN)
                     return
                 end
@@ -1764,6 +1858,7 @@ require("lazy").setup({
                 vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
                 vim.bo[buf].bufhidden = "wipe"
                 vim.bo[buf].buftype = "nofile"
+                vim.bo[buf].textwidth = 0
 
                 local width = 0
                 for _, l in ipairs(lines) do
@@ -1954,6 +2049,17 @@ require("lazy").setup({
                     if type(buf) == "number" and vim.api.nvim_buf_is_valid(buf)
                         and not _autoscroll_attached[buf] then
                         _autoscroll_attached[buf] = true
+                        -- Remove the terminal scrollback cap (default 10000)
+                        -- so the full debugee output is retained. termopen()
+                        -- resets `scrollback` when it initialises the buffer,
+                        -- so it must be set from a TermOpen autocmd that fires
+                        -- AFTER the terminal is up.
+                        pcall(vim.api.nvim_create_autocmd, "TermOpen", {
+                            buffer = buf,
+                            callback = function(args)
+                                pcall(function() vim.bo[args.buf].scrollback = -1 end)
+                            end,
+                        })
                         pcall(vim.api.nvim_buf_attach, buf, false, {
                             on_lines = function()
                                 local cur = vim.api.nvim_get_current_win()
