@@ -25,10 +25,24 @@ vim.opt.backspace = { "indent", "eol", "start" } -- Backspace acts sensibly
 -- wl-copy/xclip) — that path is fine for a short-lived nvim launched from a
 -- GUI terminal where the display is current.
 --
--- When Wayland is alive, also push yanks to the GUI clipboard via wl-copy
--- (best-effort) so the system clipboard stays in sync. The guard checks the
--- socket exists at yank time, so it's safe even if the GNOME session is gone.
+-- We use string commands (not functions) for copy/paste so that nvim handles
+-- trailing newlines correctly — it adds \n for linewise yanks when writing to
+-- stdin, and derives the register type from the trailing \n on paste. Function-
+-- based providers can't distinguish linewise from charwise (they receive only
+-- a list of lines), so yy+p would paste inline instead of on a new line.
+--
+-- A TextYankPost autocmd separately pushes yanked text to the GUI clipboard
+-- via wl-copy (best-effort, only if the Wayland socket is live at yank time).
 if os.getenv("TMUX") then
+  vim.g.clipboard = {
+    name = "tmux",
+    copy  = { ["+"] = { "tmux", "load-buffer", "-" },
+              ["*"] = { "tmux", "load-buffer", "-" } },
+    paste = { ["+"] = { "tmux", "save-buffer", "-" },
+              ["*"] = { "tmux", "save-buffer", "-" } },
+    cache_enabled = 0,
+  }
+
   local uv = vim.uv or vim.loop
 
   local function wayland_alive()
@@ -37,24 +51,20 @@ if os.getenv("TMUX") then
     return wd ~= nil and xdg ~= nil and uv.fs_stat(xdg .. "/" .. wd) ~= nil
   end
 
-  local function tmux_copy(lines)
-    local text = table.concat(lines, "\n")
-    vim.fn.system({ "tmux", "load-buffer", "-" }, text)
-    if wayland_alive() then
+  vim.api.nvim_create_autocmd("TextYankPost", {
+    group = vim.api.nvim_create_augroup("TmuxClipboardWlSync", { clear = true }),
+    callback = function()
+      if vim.v.event.operator ~= "y" then return end
+      local reg = vim.v.event.regname
+      if reg ~= "+" and reg ~= "*" and reg ~= '"' then return end
+      if not wayland_alive() then return end
+      local text = table.concat(vim.v.event.regcontents, "\n")
+      if vim.v.event.regtype == "V" then
+        text = text .. "\n"
+      end
       vim.fn.system({ "wl-copy" }, text)
-    end
-  end
-
-  local function tmux_paste()
-    return vim.fn.systemlist({ "tmux", "save-buffer", "-" })
-  end
-
-  vim.g.clipboard = {
-    name = "tmux",
-    copy  = { ["+"] = tmux_copy, ["*"] = tmux_copy },
-    paste = { ["+"] = tmux_paste, ["*"] = tmux_paste },
-    cache_enabled = 0,
-  }
+    end,
+  })
 end
 
 -- UI settings
