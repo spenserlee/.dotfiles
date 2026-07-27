@@ -182,10 +182,10 @@ require("lazy").setup({
             "shatur/neovim-ayu",
             "sainnhe/gruvbox-material",
         },
-        -- The plugin registers no keymap; map the picker here so <leader>cs
+        -- The plugin registers no keymap; map the picker here so <leader>ts
         -- works immediately (before the plugin's setup runs).
         keys = {
-            { "<leader>cs", "<cmd>ThemeSwitch<cr>", desc = "Theme: switch" },
+            { "<leader>ts", "<cmd>ThemeSwitch<cr>", desc = "Theme: switch" },
         },
         opts = function()
             -- Per-colorscheme knowledge lives HERE, in config callbacks --- the
@@ -945,9 +945,9 @@ require("lazy").setup({
         -- 'S' becomes search backwards
         url = "https://codeberg.org/andyg/leap.nvim",
         config = function()
-            vim.keymap.set({'n', 'x', 'o'}, 's',  '<Plug>(leap-forward)', { desc = "Leap forward" })
-            vim.keymap.set({'n', 'x', 'o'}, 'S',  '<Plug>(leap-backward)', { desc = "Leap backward" })
-            vim.keymap.set({'n', 'x', 'o'}, 'gs', '<Plug>(leap-from-window)', { desc = "Leap from window" })
+            vim.keymap.set({'n', 'o'}, 's',  '<Plug>(leap-forward)', { desc = "Leap forward" })
+            vim.keymap.set({'n', 'o'}, 'S',  '<Plug>(leap-backward)', { desc = "Leap backward" })
+            vim.keymap.set({'n', 'o'}, 'gs', '<Plug>(leap-from-window)', { desc = "Leap from window" })
         end,
     },
     {
@@ -1556,13 +1556,13 @@ require("lazy").setup({
                     layouts = { {
                         elements = { {
                             id = "breakpoints",
-                            size = 0.10
+                            size = 0.15
                         }, {
                             id = "scopes",
                             size = 0.20
                         }, {
                             id = "stacks",
-                            size = 0.45
+                            size = 0.40
                         }, {
                             id = "watches",
                             size = 0.25
@@ -1579,7 +1579,7 @@ require("lazy").setup({
                             size = 0.15
                         } },
                         position = "right",
-                        size = 90
+                        size = 110
                     } },
                 },
                 config = function(_, opts)
