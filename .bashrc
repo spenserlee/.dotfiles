@@ -167,6 +167,59 @@ function toggle_time_prompt {
 
 set_prompt
 
+# To address annoying system clipboard issues from persistent tmux session being
+# used between local Wayland desktop and remote XRDP one.
+function refresh-env {
+  local new_display=""
+  local new_wayland=""
+  local new_xauth=""
+
+  # 1. Try XRDP first (Remote check)
+  local xrdp_pid
+  xrdp_pid=$(pgrep -u "$USER" -f 'Xorg.*xrdp' | head -1)
+
+  if [[ -n "$xrdp_pid" ]]; then
+    # Remote session: Get env from the Xorg process
+    local env_data
+    env_data=$(tr '\0' '\n' < "/proc/$xrdp_pid/environ")
+    new_display=$(echo "$env_data" | sed -n 's/^DISPLAY=//p')
+    new_xauth=$(echo "$env_data" | sed -n 's/^XAUTHORITY=//p')
+    new_wayland="" # XRDP does not support Wayland
+    echo "Detected XRDP session (PID $xrdp_pid)"
+  else
+    # 2. Local session check (Office)
+    # Query systemd's user session environment
+    new_display=$(systemctl --user show-environment | sed -n 's/^DISPLAY=//p')
+    new_wayland=$(systemctl --user show-environment | sed -n 's/^WAYLAND_DISPLAY=//p')
+    new_xauth=$(systemctl --user show-environment | sed -n 's/^XAUTHORITY=//p')
+    echo "Detected Local/Wayland session"
+  fi
+
+  # Fallback for XAUTHORITY if not found
+  [[ -z "$new_xauth" ]] && new_xauth="$HOME/.Xauthority"
+
+  # Update current Shell
+  export DISPLAY="$new_display"
+  export WAYLAND_DISPLAY="$new_wayland"
+  export XAUTHORITY="$new_xauth"
+
+  # Update TMUX global environment
+  if [[ -n "$TMUX" ]]; then
+    tmux setenv -g DISPLAY "$new_display"
+    tmux setenv -g XAUTHORITY "$new_xauth"
+
+    if [[ -n "$new_wayland" ]]; then
+      tmux setenv -g WAYLAND_DISPLAY "$new_wayland"
+    else
+      # Remove it so apps don't try to use a dead Wayland socket over XRDP
+      tmux setenv -gu WAYLAND_DISPLAY
+    fi
+    echo "Tmux environment updated."
+  fi
+
+  echo "Current State: DISPLAY='$DISPLAY', WAYLAND_DISPLAY='$WAYLAND_DISPLAY'"
+}
+
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
