@@ -16,57 +16,6 @@ vim.opt.errorbells = false             -- Silence error bells
 vim.opt.mouse = "n"                    -- Use mouse in normal mode
 vim.opt.backspace = { "indent", "eol", "start" } -- Backspace acts sensibly
 
--- Clipboard: when inside tmux, use tmux's own buffer as the "+" register.
--- The buffer lives in the tmux server process, so it survives desktop-session
--- logouts and is shared by every nvim instance attached to the same tmux
--- server (across windows, tabs, and sessions). This sidesteps wl-copy/xclip
--- entirely, so a stale WAYLAND_DISPLAY or a dead Wayland socket can never
--- break yank/put. Outside tmux, fall back to nvim's default (auto-detected
--- wl-copy/xclip) — that path is fine for a short-lived nvim launched from a
--- GUI terminal where the display is current.
---
--- We use string commands (not functions) for copy/paste so that nvim handles
--- trailing newlines correctly — it adds \n for linewise yanks when writing to
--- stdin, and derives the register type from the trailing \n on paste. Function-
--- based providers can't distinguish linewise from charwise (they receive only
--- a list of lines), so yy+p would paste inline instead of on a new line.
---
--- A TextYankPost autocmd separately pushes yanked text to the GUI clipboard
--- via wl-copy (best-effort, only if the Wayland socket is live at yank time).
-if os.getenv("TMUX") then
-  vim.g.clipboard = {
-    name = "tmux",
-    copy  = { ["+"] = { "tmux", "load-buffer", "-" },
-              ["*"] = { "tmux", "load-buffer", "-" } },
-    paste = { ["+"] = { "tmux", "save-buffer", "-" },
-              ["*"] = { "tmux", "save-buffer", "-" } },
-    cache_enabled = 0,
-  }
-
-  local uv = vim.uv or vim.loop
-
-  local function wayland_alive()
-    local wd  = os.getenv("WAYLAND_DISPLAY")
-    local xdg = os.getenv("XDG_RUNTIME_DIR")
-    return wd ~= nil and xdg ~= nil and uv.fs_stat(xdg .. "/" .. wd) ~= nil
-  end
-
-  vim.api.nvim_create_autocmd("TextYankPost", {
-    group = vim.api.nvim_create_augroup("TmuxClipboardWlSync", { clear = true }),
-    callback = function()
-      if vim.v.event.operator ~= "y" then return end
-      local reg = vim.v.event.regname
-      if reg ~= "+" and reg ~= "*" and reg ~= '"' then return end
-      if not wayland_alive() then return end
-      local text = table.concat(vim.v.event.regcontents, "\n")
-      if vim.v.event.regtype == "V" then
-        text = text .. "\n"
-      end
-      vim.fn.system({ "wl-copy" }, text)
-    end,
-  })
-end
-
 -- UI settings
 vim.opt.encoding = "utf-8"
 vim.opt.title = true                   -- Show what's open
