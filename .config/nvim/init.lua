@@ -2562,7 +2562,8 @@ vim.keymap.set('n', '<leader>tt', toggle_diagnostics, { desc = "Toggle diagnosti
 
 -- See :help vim.diagnostic.config()
 vim.diagnostic.config({
-    virtual_text = true,
+    virtual_text = false,
+    virtual_lines = { current_line = true },
     severity_sort = true,
     float = {
         border = "rounded",
