@@ -2415,18 +2415,70 @@ vim.api.nvim_create_user_command('Make', function(opts)
 end, { nargs = "*" })
 
 -- Terminal command to run a command and show its output.
---   :Term cmd          -> new tab            (default)
---   :Term! cmd         -> horizontal split
---   :vertical Term cmd -> vertical split
+--   :Term cmd          -> show in vertical split (default)
+--   :Term h cmd        -> ...     horizontal split
+--   :Term t cmd        -> ...     new tab
 vim.api.nvim_create_user_command('Term', function(opts)
-    if opts.bang then
-        vim.cmd('split | term ' .. opts.args)
-    elseif opts.mods and opts.mods ~= '' then
-        vim.cmd(opts.mods .. ' split | term ' .. opts.args)
-    else
-        vim.cmd('tabnew | term ' .. opts.args)
+    local fargs = opts.fargs
+    if #fargs == 0 then
+        print("Usage: :Term [t|h|v] <command>")
+        return
     end
-end, { nargs = '*', bang = true })
+
+    local modifiers = {
+        t          = "tabnew",
+        tab        = "tabnew",
+        h          = "split",
+        horizontal = "split",
+        v          = "vsplit",
+        vertical   = "vsplit",
+    }
+
+    local split_cmd = "vsplit" -- Default behavior
+    local command_args = fargs
+
+    if modifiers[fargs[1]] then
+        split_cmd = modifiers[fargs[1]]
+        -- Remove the modifier from the command arguments
+        table.remove(command_args, 1)
+    end
+
+    local shell_cmd = table.concat(command_args, " ")
+    if shell_cmd == "" then
+        return
+    end
+
+    local final_cmd = string.format("%s | term %s", split_cmd, shell_cmd)
+
+    vim.cmd(final_cmd)
+end, {
+    nargs = '*',
+    complete = function(arg_lead, cmd_line, cursor_pos)
+        local modifiers = { "h", "horizontal", "t", "tab", "v", "vertical" }
+        -- everything typed after the command name, up to the cursor
+        local rest = cmd_line:sub(1, cursor_pos):match("^%s*%S+%s+(.*)$")
+        if not rest then return {} end
+
+        -- if a completed word already precedes arg_lead, we're past the
+        -- modifier slot -> complete file/path names (like :e does)
+        local prefix = rest:sub(1, #rest - #arg_lead)
+        if prefix:match("%S") then
+            return vim.fn.getcompletion(arg_lead, "file")
+        end
+
+        -- first-arg slot: offer modifiers whose prefix matches arg_lead;
+        -- if none match, fall through to file/path completion so that a
+        -- command like `pahole` still gets sensible completions.
+        local matches = {}
+        for _, m in ipairs(modifiers) do
+            if m:match("^" .. vim.pesc(arg_lead)) then
+                table.insert(matches, m)
+            end
+        end
+        if #matches > 0 then return matches end
+        return vim.fn.getcompletion(arg_lead, "file")
+    end,
+})
 
 -- :MantisSearch [query] - ripgrep (via fzf-lua live_grep) across ~/MANTIS recursively.
 --

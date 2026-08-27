@@ -124,6 +124,8 @@ function parse_git_branch {
     fi
 }
 
+time_prompt=1
+
 function set_prompt {
     local top_connect=$'\\[\\e[m\\]'"┌"
     # local time="[\[\e[34m\]\T\[\e[m\]]─"   # Time in 12-hour format HH:MM:SS
