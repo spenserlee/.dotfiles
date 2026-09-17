@@ -35,6 +35,25 @@ alias v='nvim'
 alias fgvm="sudo ip netns exec kvm_ns1"
 alias fgvm2="sudo ip netns exec kvm_ns2"
 
+# Automatically change tmux pane color during SSH sessions
+# TODO: make it theme aware / integration with theme-switch?
+ssh() {
+    # Check if we are currently inside a tmux session
+    if [ -n "$TMUX" ]; then
+        # 1. Change the background color before connecting
+        tmux select-pane -P 'bg=colour52'
+
+        # 2. Execute the real SSH command
+        command ssh "$@"
+
+        # 3. Reset to default background immediately after logging out
+        tmux select-pane -P 'bg=default'
+    else
+        # If not in tmux, just run standard SSH normally
+        command ssh "$@"
+    fi
+}
+
 export VISUAL=nvim
 export EDITOR="$VISUAL"
 
