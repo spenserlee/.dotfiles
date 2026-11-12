@@ -897,12 +897,6 @@ require("lazy").setup({
         config = true,
     },
     {
-        -- Add closing delimiter automatically.
-        "windwp/nvim-autopairs",
-        event = "InsertEnter",
-        opts = {} -- this is equalent to setup({}) function
-    },
-    {
         -- Move line/visual selection of text up/down with ctrl+shift+<up/down>.
         -- Works in normal, visual, and insert modes, with indent-awareness.
         "fedepujol/move.nvim",
@@ -1086,12 +1080,21 @@ require("lazy").setup({
 
             -- Per-server overrides. These are merged on top of the base configs
             -- shipped by nvim-lspconfig (in its `lsp/` directory).
+
+            -- For these project, only LSP for ips subfolder. Otherwise it
+            -- takes too much memory.
+            local ips_only_roots = {
+                vim.fs.normalize('~/projects/gitlab/fortios'),
+                vim.fs.normalize('~/projects/gitlab/fortios-ci'),
+            }
+
             vim.lsp.config('lua_ls', {
                 settings = {
                     Lua = {
                         runtime = { version = 'LuaJIT' },
                         diagnostics = {
                             globals = { 'vim' },
+                            disable = { 'lowercase-global' },
                         },
                         workspace = {
                             checkThirdParty = false,
@@ -1101,6 +1104,20 @@ require("lazy").setup({
                         },
                     },
                 },
+                root_dir = function(bufnr, on_dir)
+                    -- Same root detection vim.lsp does by default (root_markers
+                    -- from nvim-lspconfig's lsp/lua_ls.lua, resolved through
+                    -- vim.fs.root). NOTE (Nvim 0.12): table-indexing
+                    -- `vim.lsp.config[...]` returns the *resolved* config
+                    -- (`vim.lsp.config.resolve()` no longer exists in 0.12).
+                    local root = vim.fs.root(bufnr, vim.lsp.config['lua_ls'].root_markers)
+
+                    if root and vim.list_contains(ips_only_roots, root) then
+                        root = root .. '/ips'
+                    end
+
+                    on_dir(root)
+                end,
             })
 
             vim.lsp.config('pylsp', {
@@ -2104,18 +2121,14 @@ require("lazy").setup({
 
             local dingllm = require('dingllm')
 
-            -- TODO: Setup Grok API
-            -- https://x.ai/blog/api
-
             local release_url = 'https://generativelanguage.googleapis.com/v1/models'
             -- local g_model = 'gemini-1.5-flash'
             -- local g_model = 'gemini-1.5-pro'
 
             local beta_url = 'https://generativelanguage.googleapis.com/v1beta/models'
+            -- doesn't work anymore?
+            -- local g_model = 'gemini-3.8-flash'
             local g_model = 'gemini-3-flash-preview'
-            -- local g_model = 'gemini-2.5-flash'
-            -- local g_model = 'gemini-2.5-pro' -- RIP 2.5 pro Dec 6 2025
-            -- local g_model = 'gemini-3-pro-preview'
 
             local debug_path = '/tmp/dingllm_debug.log'
 
