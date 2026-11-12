@@ -2416,6 +2416,7 @@ vim.api.nvim_create_autocmd("FileType", {
 --   :Make          - repeat last build (or no-arg build if none yet)
 --   :Make <args>   - run a new build with <args>
 --   :Make cancel   - stop the current background build
+require('async_make').setup()
 vim.api.nvim_create_user_command('Make', function(opts)
     if opts.args == "cancel" then
         require('async_make').stop()
