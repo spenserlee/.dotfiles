@@ -2,6 +2,7 @@ local M = {}
 
 -- State management
 M.current_job = nil
+M.generation = 0
 M.ui = {
     timer = nil,
     buf = nil,
@@ -10,6 +11,37 @@ M.ui = {
     frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" },
     idx = 1
 }
+
+-- Work project is built through its Meson wrapper even from Rust buffers. Cargo
+-- sets buffer-local makeprg/errorformat for Rust, so use the global values here.
+local function is_work_project()
+    local cwd = vim.fn.getcwd()
+    return vim.uv.fs_stat(cwd .. "/ipsdev") ~= nil
+        and vim.uv.fs_stat(cwd .. "/version.conf") ~= nil
+end
+
+local function get_make_context(bufnr)
+    if is_work_project() then
+        local makeprg = vim.api.nvim_get_option_value("makeprg", { scope = "global" })
+        local efm = vim.api.nvim_get_option_value("errorformat", { scope = "global" })
+        -- Keep unmatched failure output in the quickfix instead of discarding it.
+        efm = (efm:gsub(",%%%-G%%%.%%%#%s*$", ""))
+        return makeprg, efm
+    end
+
+    local makeprg = vim.api.nvim_get_option_value("makeprg", { buf = bufnr })
+    if makeprg == "" then
+        makeprg = vim.api.nvim_get_option_value("makeprg", { scope = "global" })
+    end
+    if not makeprg or makeprg == "" then makeprg = "make" end
+
+    local efm = vim.api.nvim_get_option_value("errorformat", { buf = bufnr })
+    if efm == "" then
+        efm = vim.api.nvim_get_option_value("errorformat", { scope = "global" })
+    end
+
+    return makeprg, efm
+end
 
 local function stop_spinner()
     -- Clean up the resize handler
@@ -95,12 +127,15 @@ local function start_spinner()
 end
 
 function M.stop()
+    M.generation = M.generation + 1
     stop_spinner()
     if M.current_job then
-        vim.fn.jobstop(M.current_job)
+        local job = M.current_job
         M.current_job = nil
+        vim.fn.jobstop(job)
         vim.g.async_make_status = "[Build cancelled]"
         vim.cmd("redrawstatus")
+        vim.api.nvim_exec_autocmds("QuickFixCmdPost", { pattern = "make" })
         vim.defer_fn(function()
             if not M.current_job and not M.ui.timer then
                 vim.g.async_make_status = ""
@@ -113,21 +148,10 @@ end
 function M.make(arg)
     -- Stop previous job if it's still running
     M.stop()
+    local generation = M.generation
 
     local bufnr = vim.api.nvim_get_current_buf()
-
-    -- Get makeprg: buffer-local > global > "make"
-    local makeprg = vim.api.nvim_get_option_value("makeprg", { buf = bufnr })
-    if makeprg == "" then
-        makeprg = vim.api.nvim_get_option_value("makeprg", { scope = "global" })
-    end
-    if not makeprg or makeprg == "" then makeprg = "make" end
-
-    -- Get errorformat: buffer-local > global
-    local efm = vim.api.nvim_get_option_value("errorformat", { buf = bufnr })
-    if efm == "" then
-        efm = vim.api.nvim_get_option_value("errorformat", { scope = "global" })
-    end
+    local makeprg, efm = get_make_context(bufnr)
 
     -- Expand the command and append arguments
     local expanded_args = vim.fn.expand(arg)
@@ -163,8 +187,10 @@ function M.make(arg)
             end
         end,
         on_exit = function(_, exit_code)
+            -- Cancelled or superseded jobs must not overwrite newer results.
+            if generation ~= M.generation then return end
+
             stop_spinner()
-            local was_cancelled = (M.current_job == nil)
             M.current_job = nil
 
             -- Prepare qf options
@@ -201,10 +227,19 @@ function M.make(arg)
                 if exit_code ~= 0 then
                     pcall(vim.cmd, "cfirst")
                 end
+            elseif exit_code ~= 0 and #lines > 0 then
+                -- Keep unmatched output visible when it has no jump target.
+                local raw_items = {}
+                for _, line in ipairs(lines) do
+                    table.insert(raw_items, { text = line, valid = 0 })
+                end
+                vim.fn.setqflist({}, " ", { title = cmd, items = raw_items })
+                vim.g.async_make_status = string.format('[%d unparsed alerts (%s)]', #lines, duration)
+                vim.cmd("copen")
             elseif exit_code ~= 0 then
                 -- Build failed but no matches found in output
-                vim.g.async_make_status = was_cancelled and "[Build cancelled]" or string.format('[Failed (%s)]', duration)
-                if not was_cancelled then vim.cmd("copen") end
+                vim.g.async_make_status = string.format('[Failed (%s)]', duration)
+                vim.cmd("copen")
             else
                 -- Successful build
                 vim.cmd("cclose")
