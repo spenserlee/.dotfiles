@@ -28,7 +28,8 @@ end
 local function get_make_context(bufnr)
     if is_work_project() then
         return vim.api.nvim_get_option_value("makeprg", { scope = "global" }),
-            vim.api.nvim_get_option_value("errorformat", { scope = "global" })
+            vim.api.nvim_get_option_value("errorformat", { scope = "global" }),
+            true
     end
 
     local makeprg = vim.api.nvim_get_option_value("makeprg", { buf = bufnr })
@@ -42,7 +43,7 @@ local function get_make_context(bufnr)
         efm = vim.api.nvim_get_option_value("errorformat", { scope = "global" })
     end
 
-    return makeprg, efm
+    return makeprg, efm, false
 end
 
 local function refresh_notify_state()
@@ -238,8 +239,7 @@ function M.make(arg)
     local generation = M.generation
 
     local bufnr = vim.api.nvim_get_current_buf()
-    local makeprg, efm = get_make_context(bufnr)
-    local source_only = is_ips_project()
+    local makeprg, efm, source_only = get_make_context(bufnr)
 
     -- Expand the command and append arguments
     local expanded_args = vim.fn.expand(arg)
@@ -317,7 +317,12 @@ function M.make(arg)
             local valid_errors = #valid_items
 
             if valid_errors > 0 then
-                vim.g.async_make_status = string.format('[%d alerts (%s)]', valid_errors, duration)
+                if exit_code ~= 0 then
+                    vim.g.async_make_status = string.format(
+                        '[Build failed: %d alerts (%s)]', valid_errors, duration)
+                else
+                    vim.g.async_make_status = string.format('[%d alerts (%s)]', valid_errors, duration)
+                end
                 vim.cmd("copen")
                 -- Jump to first error if the build failed
                 if exit_code ~= 0 then
