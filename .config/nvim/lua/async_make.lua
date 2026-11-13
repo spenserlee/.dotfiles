@@ -328,6 +328,16 @@ function M.make(arg)
                 if exit_code ~= 0 then
                     pcall(vim.cmd, "cfirst")
                 end
+            elseif not source_only and exit_code ~= 0 and #lines > 0 then
+                -- Preserve raw output for projects without work project's filtered
+                -- diagnostic format.
+                local raw_items = {}
+                for _, line in ipairs(lines) do
+                    table.insert(raw_items, { text = line, valid = 0 })
+                end
+                vim.fn.setqflist({}, " ", { title = cmd, items = raw_items })
+                vim.g.async_make_status = string.format('[%d unparsed alerts (%s)]', #lines, duration)
+                vim.cmd("copen")
             elseif exit_code ~= 0 then
                 -- Build failed but no matches found in output
                 vim.g.async_make_status = string.format('[Failed (%s)]', duration)
